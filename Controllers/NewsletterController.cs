@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using mainframe.Models;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace mainframe.Controllers
 {
@@ -21,6 +23,14 @@ namespace mainframe.Controllers
             if (emailSubscription == null || string.IsNullOrWhiteSpace(emailSubscription.Email))
             {
                 return BadRequest("Invalid email provided.");
+            }
+
+            // Check if the email already exists in the database
+            var existingSubscription = await _context.EmailSubscriptions
+                                                    .FirstOrDefaultAsync(e => e.Email == emailSubscription.Email);
+            if (existingSubscription != null)
+            {
+                return BadRequest("Email is already subscribed.");
             }
 
             _context.EmailSubscriptions.Add(emailSubscription);
