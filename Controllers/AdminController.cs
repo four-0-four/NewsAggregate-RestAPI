@@ -25,6 +25,12 @@ namespace mainframe.Controllers
             return Ok(_env.EnvironmentName);
         }
 
+        [HttpGet("hi")]
+        public IActionResult GetEnvironment()
+        {
+            return Ok("hi");
+        }
+
         [HttpGet("connectionstring")]
         public IActionResult GetConnectionString()
         {
