@@ -4,6 +4,7 @@ from fastapi import HTTPException, Path, APIRouter, Depends
 from starlette import status
 from sqlalchemy.orm import Session
 from typing import Annotated
+from ..config.database import SessionLocal
 
 def get_db():
     db = SessionLocal()
