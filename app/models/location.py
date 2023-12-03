@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy.sql import func
 from ..config.database import Base
 
 class Continent(Base):
@@ -7,7 +8,8 @@ class Continent(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50))
     code = Column(String(5))
-    
+    createdAt = Column(DateTime(timezone=True), server_default=func.now())
+    updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
 class Country(Base):
     __tablename__ = "countries"
@@ -21,8 +23,9 @@ class Country(Base):
     currency = Column(String(5))
     continent_id = Column(Integer, ForeignKey('continents.id'))
     language_id = Column(Integer, ForeignKey('languages.id'))
-    
-    
+    createdAt = Column(DateTime(timezone=True), server_default=func.now())
+    updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
+
 class Province(Base):
     __tablename__ = "provinces"
 
@@ -30,7 +33,8 @@ class Province(Base):
     name = Column(String(100))
     code = Column(String(5))
     country_id = Column(Integer, ForeignKey('countries.id'))
-    
+    createdAt = Column(DateTime(timezone=True), server_default=func.now())
+    updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
 class City(Base):
     __tablename__ = "cities"
@@ -39,3 +43,5 @@ class City(Base):
     name = Column(String(100))
     province_id = Column(Integer, ForeignKey('provinces.id'))
     country_id = Column(Integer, ForeignKey('countries.id'))
+    createdAt = Column(DateTime(timezone=True), server_default=func.now())
+    updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
