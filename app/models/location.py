@@ -33,6 +33,7 @@ class Province(Base):
     name = Column(String(100))
     code = Column(String(5))
     country_id = Column(Integer, ForeignKey('countries.id'))
+    subdivision_type = Column(String(50))
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
