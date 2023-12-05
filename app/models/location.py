@@ -7,7 +7,6 @@ class Continent(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50))
-    code = Column(String(5))
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -18,11 +17,10 @@ class Country(Base):
     name = Column(String(100))
     code = Column(String(5))
     capital = Column(String(100))
-    phone = Column(Integer)
+    phone = Column(String(10))
     native = Column(String(100))
     currency = Column(String(5))
     continent_id = Column(Integer, ForeignKey('continents.id'))
-    language_id = Column(Integer, ForeignKey('languages.id'))
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -33,7 +31,6 @@ class Province(Base):
     name = Column(String(100))
     code = Column(String(5))
     country_id = Column(Integer, ForeignKey('countries.id'))
-    subdivision_type = Column(String(50))
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
