@@ -8,6 +8,8 @@ from app.config.database import Base
 from app.models.common import Media, NewsCorporations, Language, Keyword, Category
 from app.models.location import Continent, Country, Province, City
 from app.models.news import News, NewsLocation, NewsCategory, NewsKeywords, NewsAffiliates, NewsMedia
+from app.models.user import User, Following
+from app.models.writer import Writer, WriterAffiliate, Review, ReviewMedia, Feedback
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
