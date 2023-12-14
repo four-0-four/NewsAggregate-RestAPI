@@ -5,7 +5,7 @@ from app.config.database import engine, Base
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from app.controllers import authController, locationController
+from app.controllers import authController, locationController, commonController
 
 # Initialize the limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -32,3 +32,4 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Include routers from controllers
 app.include_router(authController.router)
 app.include_router(locationController.router)
+app.include_router(commonController.router)

@@ -6,8 +6,9 @@ class Media(Base):
     __tablename__ = "media"
 
     id = Column(Integer, primary_key=True, index=True)
-    mediaUrl = Column(String(300))
-    isVideo = Column(Boolean, default=False)
+    type = Column(String(30), nullable=False)
+    fileName = Column(String(100), nullable=False)
+    fileExtension = Column(String(20), nullable=False)
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
