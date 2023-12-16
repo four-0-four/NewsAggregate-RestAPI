@@ -3,7 +3,6 @@ from app.models.common import Media
 # app/controllers/auth_controller.py
 from fastapi import UploadFile
 from app.util.fileUpload import upload_to_spaces
-from app.services.commonService import save_media
 from fastapi import UploadFile, HTTPException
 from secrets import token_hex
 from app.models.common import Media, Keyword, Category

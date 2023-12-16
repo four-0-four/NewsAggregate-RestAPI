@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from ..config.database import Base
 from typing import Optional
 from .common import Media
-from pydantic import BaseModel, Field, EmailStr, validator
+from pydantic import BaseModel, Field, EmailStr, field_validator
 import re
 
 
@@ -44,7 +44,20 @@ class UserInput(BaseModel):
     password: str = Field(min_length=8, max_length=300)
     role: Optional[str] = Field(default='user')
 
-    @validator('password')
+    @field_validator('username')
+    def validate_username(cls, value: str):
+        if not value.isalnum():
+            raise ValueError('Username must only contain alphanumeric characters')
+        return value
+
+    @field_validator('role')
+    def validate_role(cls, value: str):
+        valid_roles = ['user', 'admin', 'moderator']
+        if value not in valid_roles:
+            raise ValueError(f'Role must be one of {valid_roles}')
+        return value
+
+    @field_validator('password')
     def validate_password_strength(cls, value: str):
         if len(value) < 8:
             raise ValueError('Password must be at least 8 characters long')
@@ -60,4 +73,14 @@ class UserInput(BaseModel):
                 "password": "Password123!"
             }
         }
+        
+class DeleteUserInput(BaseModel):
+    username: str = Field(min_length=2, max_length=100)
+    
+    @field_validator('username')
+    def validate_username(cls, value: str):
+        if not value.isalnum():
+            raise ValueError('Username must only contain alphanumeric characters')
+        return value
+
         
