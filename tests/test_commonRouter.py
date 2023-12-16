@@ -40,7 +40,7 @@ def test_upload_invalid_file_type():
     # Login and get JWT token
     jwt_token = test_login_valid_user()
 
-    # Arrange for file upload
+    # Arrange for file uploads
     test_file_path = "./tests/text_file.txt"
 
     # Headers with Authorization
