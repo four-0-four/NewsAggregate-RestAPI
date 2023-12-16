@@ -125,6 +125,8 @@ def test_login_valid_user():
     assert response.status_code == 200
     assert "access_token" in response.json()
     
+    return response.json()["access_token"]
+    
 def test_login_inactive_user():
     # Arrange
     valid_user = {
