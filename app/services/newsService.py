@@ -1,6 +1,29 @@
+from app.models.writer import Writer
 from sqlalchemy.orm import Session
 from app.models.news import NewsLocation, NewsCategory, NewsKeywords, NewsAffiliates, NewsMedia
 
+#################################### News ####################################
+from fastapi import HTTPException
+from app.models.news import News, NewsInput
+
+async def validate_writer(db: Session, writer_id: int) -> bool:
+    writer = await db.fetch_one(query=Writer.select().where(Writer.c.id == writer_id))
+    return writer is not None
+
+async def add_news(db: Session, news_input: NewsInput) -> News:
+    query = News.insert().values(**news_input.dict())
+    news_id = await db.execute(query)
+    return await db.fetch_one(News.select().where(News.c.id == news_id))
+
+async def add_keywords_to_news(db: Session, news_id: int, keywords: List[str]):
+    for keyword in keywords:
+        query = Keyword.insert().values(news_id=news_id, keyword=keyword)
+        await db.execute(query)
+
+async def add_medias_to_news(db: Session, news_id: int, medias: List[MediaInput]):
+    for media in medias:
+        query = Media.insert().values(news_id=news_id, **media.dict())
+        await db.execute(query)
 
 
 ############################## NewsLocation ##############################
