@@ -124,8 +124,7 @@ class NewsInput(BaseModel):
     isInternal: bool = True
     isPublished: bool = False
     writer_id: int  # ID of the writer
-    keyword_ids: List[str]  # List of keyword IDs
-    media_files: List[UploadFile] = []
+    keywords: List[str]  # List of keyword IDs
     
     class Config:
         orm_mode = True

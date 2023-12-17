@@ -106,9 +106,9 @@ async def get_keyword(
     request: Request,
     user: user_dependency,
     db: db_dependency,
-    keyword_id: int
+    keyword: str
 ):
-    return get_keyword(db, keyword_id)
+    return get_keyword(db, keyword)
 
 
 @router.post("/keyword")

@@ -15,7 +15,7 @@ def test_upload_file():
     jwt_token = test_login_valid_user()
 
     # Arrange for file upload
-    test_file_path = "./tests/test_file.jpg"
+    test_file_path = "./test_file.jpg"
 
     # Headers with Authorization
     headers = {"Authorization": f"Bearer {jwt_token}"}
@@ -42,7 +42,7 @@ def test_upload_invalid_file_type():
 
 
     # Arrange for file uploads
-    test_file_path = "./tests/text_file.txt"
+    test_file_path = "./text_file.txt"
     # Headers with Authorization
     headers = {"Authorization": f"Bearer {jwt_token}"}
 

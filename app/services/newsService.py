@@ -9,37 +9,32 @@ from app.models.news import (
 )
 from fastapi import APIRouter, Depends, Request, UploadFile
 from typing import List
-
-#################################### News ####################################
 from fastapi import HTTPException
 from app.models.news import News, NewsInput
-from app.models.common import Keyword, Media
 
 
-async def validate_writer(db: Session, writer_id: int) -> bool:
-    writer = await db.fetch_one(
-        query=Writer.select().where(Writer.id == writer_id)
-    ).first()
-    return writer is not None
+#################################### News ####################################
+async def add_news_db(db: Session, news_input: NewsInput):
+    # Create a new News instance from the NewsInput data
+    news = News(
+        title=news_input.title,
+        description=news_input.description,
+        content=news_input.content,
+        publishedDate=news_input.publishedDate,
+        language_id=news_input.language_id,
+        isInternal=news_input.isInternal,
+        isPublished=news_input.isPublished
+    )
+
+    # Add the news instance to the session
+    db.add(news)
+    db.commit()
+    db.refresh(news)
+    return news
 
 
-async def add_news(db: Session, news_input: NewsInput) -> News:
-    query = News.insert().values(**news_input.dict())
-    news_id = await db.execute(query)
-    return await db.fetch_one(News.select().where(News.id == news_id))
-
-
-async def add_keywords_to_news(db: Session, news_id: int, keywords: List[str]):
-    for keyword in keywords:
-        query = Keyword.insert().values(news_id=news_id, keyword=keyword)
-        await db.execute(query)
-
-
-async def add_medias_to_news(db: Session, news_id: int, medias: List[UploadFile]):
-    for media in medias:
-        query = Media.insert().values(news_id=news_id, **media.dict())
-        await db.execute(query)
-
+async def get_news_by_title(db: Session, title: str):
+    return db.query(News).filter(News.title == title).first()
 
 ############################## NewsLocation ##############################
 def get_news_location(
@@ -141,25 +136,38 @@ def update_news_category(db: Session, news_id: int, category: NewsCategory):
 
 
 #################################### NewsKeywords ####################################
-def get_news_keyword(db: Session, news_id: int):
+
+def create_news_keyword(db: Session, news_id:int, keyword_id: int):
+    news_keyword = get_news_keyword(db, news_id, keyword_id)
+    if not news_keyword:
+        news_keyword = NewsKeywords(news_id=news_id, keyword_id=keyword_id)
+        db.add(news_keyword)
+        db.commit()
+        db.refresh(news_keyword)
+        return news_keyword
+    return news_keyword
+
+
+def get_news_keyword(db: Session, news_id: int, keyword_id: int):
+    return (
+        db.query(NewsKeywords)
+        .filter(NewsKeywords.news_id == news_id, NewsKeywords.keyword_id == keyword_id)
+        .first()
+    )
+
+
+def get_all_news_keywords(db: Session, news_id: int):
     return db.query(NewsKeywords).filter(NewsKeywords.news_id == news_id).first()
 
 
-def create_news_keyword(db: Session, keyword: NewsKeywords):
-    db.add(keyword)
-    db.commit()
-    db.refresh(keyword)
-    return keyword
-
-
 def delete_news_keyword(db: Session, news_id: int):
-    keyword = get_news_keyword(db, news_id)
+    keyword = get_all_news_keywords(db, news_id)
     db.delete(keyword)
     db.commit()
 
 
 def update_news_keyword(db: Session, news_id: int, keyword: NewsKeywords):
-    db_keyword = get_news_keyword(db, news_id)
+    db_keyword = get_all_news_keywords(db, news_id)
     db_keyword.update(keyword)
     db.commit()
     db.refresh(db_keyword)
