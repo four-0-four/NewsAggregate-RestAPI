@@ -1,15 +1,13 @@
 from fastapi import APIRouter, HTTPException
-from .news import NewsInput, add_news
+from app.models.news import NewsInput
+from app.services.newsService import add_news
 from .writer import validate_writer
 from .keywords import add_keywords_to_news
 from .medias import add_medias_to_news
 
-router = APIRouter(
-    prefix="/news", 
-    tags=["news"]
-)
+router = APIRouter(prefix="/news", tags=["news"])
 
-'''
+"""
 class NewsInput(BaseModel):
     title: str
     description: Optional[str] = None
@@ -24,8 +22,9 @@ class NewsInput(BaseModel):
     
     class Config:
         orm_mode = True
-'''
-    
+"""
+
+
 @router.post("/add")
 async def create_news(news_input: NewsInput):
     # Validate the writer
