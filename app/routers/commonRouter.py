@@ -10,7 +10,7 @@ from app.services.commonService import (
     save_media,
     update_keyword,
     delete_keyword,
-    add_category,
+    add_category_db,
     update_category,
     delete_category,
     get_keyword,
@@ -175,7 +175,7 @@ async def add_category(
     db: db_dependency,
     category: str
 ):
-    return add_category(db, category)
+    return add_category_db(db, category)
 
 
 @router.put("/category")

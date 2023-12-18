@@ -63,7 +63,7 @@ async def delete_keyword(db: Session, keyword: str):
     return {"message": "Keyword deleted successfully"}
 
 
-async def add_category(db: Session, category: str):
+async def add_category_db(db: Session, category: str):
     new_category = Category(name=category)
     db.add(new_category)
     db.commit()

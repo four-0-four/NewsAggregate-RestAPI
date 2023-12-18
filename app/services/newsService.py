@@ -36,14 +36,25 @@ async def add_news_db(db: Session, news_input: NewsInput):
 async def get_news_by_title(db: Session, title: str):
     return db.query(News).filter(News.title == title).first()
 
+
+# delete news by id
+async def delete_news_by_id(db: Session, news_id: int):
+    news = db.query(News).filter(News.id == news_id).first()
+    if news:
+        db.delete(news)
+        db.commit()
+        return True
+    return False
+
+
 ############################## NewsLocation ##############################
 def get_news_location(
-    db: Session,
-    news_id: int,
-    continent_id: int,
-    country_id: int,
-    province_id: int,
-    city_id: int,
+        db: Session,
+        news_id: int,
+        continent_id: int,
+        country_id: int,
+        province_id: int,
+        city_id: int,
 ):
     return (
         db.query(NewsLocation)
@@ -66,12 +77,12 @@ def create_news_location(db: Session, location: NewsLocation):
 
 
 def delete_news_location(
-    db: Session,
-    news_id: int,
-    continent_id: int,
-    country_id: int,
-    province_id: int,
-    city_id: int,
+        db: Session,
+        news_id: int,
+        continent_id: int,
+        country_id: int,
+        province_id: int,
+        city_id: int,
 ):
     location = get_news_location(
         db, news_id, continent_id, country_id, province_id, city_id
@@ -82,13 +93,13 @@ def delete_news_location(
 
 
 def update_news_location(
-    db: Session,
-    news_id: int,
-    continent_id: int,
-    country_id: int,
-    province_id: int,
-    city_id: int,
-    location: NewsLocation,
+        db: Session,
+        news_id: int,
+        continent_id: int,
+        country_id: int,
+        province_id: int,
+        city_id: int,
+        location: NewsLocation,
 ):
     db_location = get_news_location(
         db, news_id, continent_id, country_id, province_id, city_id
@@ -137,7 +148,7 @@ def update_news_category(db: Session, news_id: int, category: NewsCategory):
 
 #################################### NewsKeywords ####################################
 
-def create_news_keyword(db: Session, news_id:int, keyword_id: int):
+def create_news_keyword(db: Session, news_id: int, keyword_id: int):
     news_keyword = get_news_keyword(db, news_id, keyword_id)
     if not news_keyword:
         news_keyword = NewsKeywords(news_id=news_id, keyword_id=keyword_id)
@@ -176,7 +187,7 @@ def update_news_keyword(db: Session, news_id: int, keyword: NewsKeywords):
 
 ################################### NewsAffiliates ###################################
 def get_news_affiliate(
-    db: Session, news_id: int, newsCorporation_id: int, externalLink: str
+        db: Session, news_id: int, newsCorporation_id: int, externalLink: str
 ):
     return (
         db.query(NewsAffiliates)
@@ -197,7 +208,7 @@ def create_news_affiliate(db: Session, affiliate: NewsAffiliates):
 
 
 def delete_news_affiliate(
-    db: Session, news_id: int, newsCorporation_id: int, externalLink: str
+        db: Session, news_id: int, newsCorporation_id: int, externalLink: str
 ):
     affiliate = get_news_affiliate(db, news_id, newsCorporation_id, externalLink)
     if affiliate:
@@ -206,11 +217,11 @@ def delete_news_affiliate(
 
 
 def update_news_affiliate(
-    db: Session,
-    news_id: int,
-    newsCorporation_id: int,
-    externalLink: str,
-    affiliate: NewsAffiliates,
+        db: Session,
+        news_id: int,
+        newsCorporation_id: int,
+        externalLink: str,
+        affiliate: NewsAffiliates,
 ):
     db_affiliate = get_news_affiliate(db, news_id, newsCorporation_id, externalLink)
     if db_affiliate:
