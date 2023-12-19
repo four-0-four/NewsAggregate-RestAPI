@@ -21,7 +21,7 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # delete user
-async def delete_user_func(
+def delete_user_func(
     request: Request, response: Response, db: Session, username: str
 ):
     # Retrieve the user from the database
@@ -38,7 +38,7 @@ async def delete_user_func(
     return {"detail": "User deleted successfully"}
 
 
-async def register_user(
+def register_user(
     request: Request, response: Response, user: UserInput, db: db_dependency
 ):
     # Check if a user with the same email already exists
@@ -68,7 +68,7 @@ async def register_user(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-async def login_user(
+def login_user(
     request: Request,
     response: Response,
     db: db_dependency,
@@ -106,7 +106,7 @@ async def login_user(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-async def get_refresh_token(
+def get_refresh_token(
     response: Response, db: db_dependency, refresh_token: str = Depends(oauth2_bearer)
 ):
     try:
@@ -200,7 +200,7 @@ def add_user_to_db(user_data: UserInput, db: db_dependency):
     return user_model
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")

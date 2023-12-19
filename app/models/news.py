@@ -125,6 +125,7 @@ class NewsInput(BaseModel):
     isPublished: bool = False
     writer_id: int  # ID of the writer
     keywords: List[str]  # List of keyword IDs
+    category_id: int
     
     class Config:
         orm_mode = True

@@ -6,15 +6,8 @@ from app.services.authService import get_current_user
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from app.services.commonService import (
-    add_keyword,
     save_media,
-    update_keyword,
-    delete_keyword,
     add_category_db,
-    update_category,
-    delete_category,
-    get_keyword,
-    get_sub_category,
     get_category,
 )
 from app.util.fileUpload import upload_to_spaces, delete_from_spaces, DeleteError
@@ -68,7 +61,7 @@ async def upload_document(
     url = await upload_to_spaces(file_name, file_path, file_ext, file)
 
     # Save the URL in the database
-    media_record = await save_media(db, file_name, file_type, file_ext)
+    media_record = save_media(db, file_name, file_type, file_ext)
 
     return {"file_name": file_name, "id": media_record.id}
 
@@ -93,59 +86,14 @@ async def delete_document(
         raise HTTPException(status_code=500, detail=str(e))
 
     # Delete the file record from the database (assuming get_media_by_name_and_type and delete_media are defined)
-    file_info = await get_media_by_name_and_type(db, file_type, file_name, file_ext)
+    file_info = get_media_by_name_and_type(db, file_type, file_name, file_ext)
     if file_info:
-        await delete_media(db, file_info.id)
+        delete_media(db, file_info.id)
 
     return {"detail": "File deleted successfully."}
 
 
-@router.get("/keyword")
-@limiter.limit("10/minute")
-async def get_keyword(
-    request: Request,
-    user: user_dependency,
-    db: db_dependency,
-    keyword: str
-):
-    return get_keyword(db, keyword)
-
-
-@router.post("/keyword")
-@limiter.limit("10/minute")
-async def add_keyword(
-    request: Request,
-    user: user_dependency,
-    db: db_dependency,
-    keyword: str
-):
-    return add_keyword(db, keyword)
-
-
-@router.put("/keyword")
-@limiter.limit("10/minute")
-async def update_keyword(
-    request: Request,
-    user: user_dependency,
-    db: db_dependency,
-    keyword: str,
-    new_keyword: str,
-):
-    return update_keyword(db, keyword, new_keyword)
-
-
-@router.delete("/keyword")
-@limiter.limit("10/minute")
-async def delete_keyword(
-    request: Request,
-    user: user_dependency,
-    db: db_dependency,
-    keyword: str
-):
-    return delete_keyword(db, keyword)
-
-
-@router.get("/category/individual")
+@router.get("/category")
 @limiter.limit("10/minute")
 async def get_category(
     request: Request,
@@ -154,17 +102,6 @@ async def get_category(
     category: str
 ):
     return get_category(db, category)
-
-
-@router.get("/category/children")
-@limiter.limit("10/minute")
-async def get_sub_category(
-    request: Request,
-    user: user_dependency,
-    db: db_dependency,
-    parent_id: int
-):
-    return get_sub_category(db, parent_id)
 
 
 @router.post("/category")
@@ -177,25 +114,3 @@ async def add_category(
 ):
     return add_category_db(db, category)
 
-
-@router.put("/category")
-@limiter.limit("10/minute")
-async def update_category(
-    request: Request,
-    user: user_dependency,
-    db: db_dependency,
-    category: str,
-    new_category: str,
-):
-    return update_category(db, category, new_category)
-
-
-@router.delete("/category")
-@limiter.limit("10/minute")
-async def delete_category(
-    request: Request,
-    user: user_dependency,
-    db: db_dependency,
-    category: str
-):
-    return delete_category(db, category)

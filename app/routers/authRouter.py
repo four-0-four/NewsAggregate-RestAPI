@@ -30,7 +30,7 @@ async def create_user(
     user: UserInput,
     db: Session = Depends(get_db)
 ):
-    return await register_user(request, response, user, db)
+    return register_user(request, response, user, db)
 
 
 @router.delete("/user/delete/{username}")
@@ -38,7 +38,7 @@ async def create_user(
 async def delete_user(
     request: Request, response: Response, username: str, db: Session = Depends(get_db)
 ):
-    return await delete_user_func(request, response, db, username)
+    return delete_user_func(request, response, db, username)
 
 
 @router.post("/user/login")
@@ -49,7 +49,7 @@ async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
-    return await login_user(request, response, db, form_data)
+    return login_user(request, response, db, form_data)
 
 
 @router.post("/refresh/")
@@ -58,4 +58,4 @@ async def refresh_access_token(
     refresh_token: str = Depends(oauth2_bearer),
     db: Session = Depends(get_db),
 ):
-    return await get_refresh_token(response, refresh_token, db)
+    return get_refresh_token(response, refresh_token, db)

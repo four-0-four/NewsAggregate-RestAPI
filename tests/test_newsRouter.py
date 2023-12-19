@@ -24,7 +24,8 @@ def test_add_news_db():
         isInternal=False,
         isPublished=True,
         writer_id=1,
-        keywords=["test", "news", "pytest"]
+        keywords=["test", "news", "pytest"],
+        category_id=1,
     )
 
     # Convert all datetime fields to strings
@@ -42,11 +43,11 @@ def test_add_news_db():
     assert response.json() == {"message": "News added successfully."}
     assert response.status_code == 200
 
-    test_get_news_db()
-    test_delete_news_db()
+    tst_get_news_db()
+    tst_delete_news_db()
 
 
-def test_get_news_db():
+def tst_get_news_db():
     news_title = "Test News1: this is just a test6"
     jwt_token = test_login_valid_user()
     headers = {"Authorization": f"Bearer {jwt_token}"}
@@ -65,7 +66,7 @@ def test_get_news_db():
     return response_data["news_id"]
 
 
-def test_delete_news_db():
+def tst_delete_news_db():
     news_title = "Test News1: this is just a test6"
     jwt_token = test_login_valid_user()
     headers = {"Authorization": f"Bearer {jwt_token}"}
