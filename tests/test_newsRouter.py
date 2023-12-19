@@ -6,35 +6,83 @@ from app.models.news import NewsInput
 from unittest.mock import create_autospec
 from fastapi.testclient import TestClient
 from main import app
+from tests.test_authRouter import test_login_valid_user
 
 client = TestClient(app)
 
-async def test_add_news_db():
+
+def test_add_news_db():
+    jwt_token = test_login_valid_user()
+
     # Arrange
     news_input = NewsInput(
-        title="Test News",
+        title="Test News1: this is just a test6",
         description="Test Description",
         content="This is a test content for the news.",
-        publishedDate=datetime.now(),
-        language_id=1,  # Assuming 1 is a valid language ID in your database
+        publishedDate=datetime.now().isoformat(),  # Convert to string
+        language_id=1,
         isInternal=False,
         isPublished=True,
-        writer_id=1,  # Assuming 1 is a valid writer ID in your database
+        writer_id=1,
         keywords=["test", "news", "pytest"]
     )
 
+    # Convert all datetime fields to strings
+    news_input_dict = news_input.dict()
+    for key, value in news_input_dict.items():
+        if isinstance(value, datetime):
+            news_input_dict[key] = value.isoformat()
+
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+
     # Act
-    response = client.post("/news/add", json=news_input.dict())
+    response = client.post("/news/add", headers=headers,  json=news_input_dict)
+
+    # Assert
+    assert response.json() == {"message": "News added successfully."}
+    assert response.status_code == 200
+
+    test_get_news_db()
+    test_delete_news_db()
+
+
+def test_get_news_db():
+    news_title = "Test News1: this is just a test6"
+    jwt_token = test_login_valid_user()
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+
+    # Act
+    response = client.get(f"/news/get?news_title={news_title}", headers=headers)
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == {"message": "News added successfully."}
+    response_data = response.json()
+    assert "message" in response_data
+    assert "news_id" in response_data
+    assert response_data["message"] == "News found successfully."
+    assert isinstance(response_data["news_id"], int)
+
+    return response_data["news_id"]
 
 
-async def get_news_db(news_title):
+def test_delete_news_db():
+    news_title = "Test News1: this is just a test6"
+    jwt_token = test_login_valid_user()
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+
     # Act
-    response = client.post(f"/news/add?news_title={news_title}")
+    response = client.delete(f"/news/delete?news_title={news_title}", headers=headers)
 
     # Assert
+    # Assert
     assert response.status_code == 200
-    assert response.json() == {"message": "News added successfully."}
+    response_data = response.json()
+    assert "message" in response_data
+    assert "news_id" in response_data
+    assert response_data["message"] == "News deleted successfully."
+    assert isinstance(response_data["news_id"], int)
+
+    # Check if the news is deleted
+    response = client.get(f"/news/get?news_title={news_title}", headers=headers)
+    assert response.status_code == 409
+    assert response.json() == {"detail": "News does not exists"}

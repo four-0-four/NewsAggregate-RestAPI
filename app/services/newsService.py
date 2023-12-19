@@ -38,13 +38,22 @@ async def get_news_by_title(db: Session, title: str):
 
 
 # delete news by id
-async def delete_news_by_id(db: Session, news_id: int):
-    news = db.query(News).filter(News.id == news_id).first()
+async def delete_news_by_title(db: Session, news_title: str):
+    # Find the news item by title
+    news = db.query(News).filter(News.title == news_title).first()
+
     if news:
+        # Delete associated NewsKeywords
+        db.query(NewsKeywords).filter(NewsKeywords.news_id == news.id).delete()
+
+        # TODO: Delete associated NewsAffiliates
+
+        # Now delete the news item itself
         db.delete(news)
         db.commit()
-        return True
-    return False
+        return news
+
+    return None
 
 
 ############################## NewsLocation ##############################
