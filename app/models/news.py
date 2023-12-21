@@ -2,6 +2,10 @@ from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, U
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from ..config.database import Base
+from pydantic import BaseModel
+from typing import List, Optional
+from datetime import datetime
+from fastapi import UploadFile
 
 # Define the News table
 class News(Base):
@@ -108,3 +112,20 @@ class NewsMedia(Base):
 
     # Define a relationship with News
     news = relationship("News", back_populates="media")
+
+
+############################## pydantic models ##############################
+class NewsInput(BaseModel):
+    title: str
+    description: Optional[str] = None
+    content: str
+    publishedDate: datetime
+    language_id: int
+    isInternal: bool = True
+    isPublished: bool = False
+    writer_id: int  # ID of the writer
+    keywords: List[str]  # List of keyword IDs
+    category_id: int
+    
+    class Config:
+        orm_mode = True

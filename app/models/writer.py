@@ -11,19 +11,19 @@ class Writer(Base):
     last_name = Column(String(100), nullable=False)
     profile_picture_id = Column(Integer, ForeignKey('media.id'), nullable=False)
     is_internal = Column(Boolean, nullable=False, default=True)
-    username = Column(String(100), nullable=False, unique=True)
-    password = Column(String(300), nullable=False)
-    linkedin_profile = Column(String(300), nullable=False)  # Renamed to snake_case
-    past_experience_url = Column(String(300), nullable=False)  # Renamed to snake_case
-    resume_id = Column(Integer, ForeignKey('media.id'), nullable=False)
-    email = Column(String(300), nullable=False, unique=True)
+    #username = Column(String(100), nullable=False, unique=True)
+    #password = Column(String(300), nullable=False)
+    #linkedin_profile = Column(String(300), nullable=False)  # Renamed to snake_case
+    #past_experience_url = Column(String(300), nullable=False)  # Renamed to snake_case
+    #resume_id = Column(Integer, ForeignKey('media.id'), nullable=False)
+    #email = Column(String(300), nullable=False, unique=True)
 
     # Define relationships
     media_profile_picture = relationship('Media', foreign_keys=[profile_picture_id])
-    media_resume = relationship('Media', foreign_keys=[resume_id])
-    reviews = relationship('Review', back_populates='writer')
-    feedbacks = relationship('Feedback', back_populates='writer')
-    news_written = relationship('News', secondary='news_writer', back_populates='writers')  # Renamed to snake_case
+    #media_resume = relationship('Media', foreign_keys=[resume_id])
+    #reviews = relationship('Review', back_populates='writer')
+    #feedbacks = relationship('Feedback', back_populates='writer')
+    #news_written = relationship('News', secondary='news_writer', back_populates='writers')  # Renamed to snake_case
 
 class WriterAffiliate(Base):
     __tablename__ = "writer_affiliates"  # Renamed to snake_case
@@ -33,6 +33,7 @@ class WriterAffiliate(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+'''
 class Review(Base):
     __tablename__ = "reviews"  # Renamed to snake_case
 
@@ -80,3 +81,4 @@ class NewsWriter(Base):
     # Define relationships
     writer = relationship('Writer', back_populates='news_written')
     news = relationship('News', back_populates='writers')
+'''

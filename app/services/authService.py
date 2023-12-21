@@ -19,8 +19,11 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ###################################endpoint functions##############################################
 
-#delete user
-async def delete_user_func(request: Request, response: Response, db: Session, username: str):
+
+# delete user
+def delete_user_func(
+    request: Request, response: Response, db: Session, username: str
+):
     # Retrieve the user from the database
     user = db.query(User).filter(User.username == username).first()
 
@@ -34,63 +37,94 @@ async def delete_user_func(request: Request, response: Response, db: Session, us
 
     return {"detail": "User deleted successfully"}
 
-async def register_user(request: Request, response: Response, user:UserInput, db: db_dependency):
+
+def register_user(
+    request: Request, response: Response, user: UserInput, db: db_dependency
+):
     # Check if a user with the same email already exists
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already in use")
-    
+
     # Check if username is provided if the username is in use
     if user.username and db.query(User).filter(User.username == user.username).first():
         raise HTTPException(status_code=400, detail="Username already in use")
 
-    new_user = add_user_to_db(user,db)
-    
+    new_user = add_user_to_db(user, db)
+
     # Create tokens after successful registration
-    access_data = {"sub": new_user.username, "id": new_user.id, 'role': 'user', 'user': user_to_json(new_user)}
+    access_data = {
+        "sub": new_user.username,
+        "id": new_user.id,
+        "role": "user",
+        "user": user_to_json(new_user),
+    }
     access_token = create_access_token(access_data)
     refresh_token = create_refresh_token(access_data)
 
     # Set refresh token in an HttpOnly cookie
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True)
-    
+
     return {"access_token": access_token, "token_type": "bearer"}
 
-async def login_user(request: Request, response: Response, db: db_dependency, form_data: OAuth2PasswordRequestForm = Depends()):
+
+def login_user(
+    request: Request,
+    response: Response,
+    db: db_dependency,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+):
     # Try to authenticate using form_data.username as username
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         # If authentication failed, try to authenticate using form_data.username as email
-        user = authenticate_user(db, form_data.username, form_data.password, is_email=True)
+        user = authenticate_user(
+            db, form_data.username, form_data.password, is_email=True
+        )
         if not user:
-            raise HTTPException(status_code=401, detail="Incorrect username/email or password")
-    
+            raise HTTPException(
+                status_code=401, detail="Incorrect username/email or password"
+            )
+
     # Check if the user is active
     if not user.is_active:
-        raise HTTPException(status_code=403, detail="Please click on the activation link in your email to activate your account")
-    
-    access_data = {"sub": user.username, "id": user.id, 'role': 'user', "user": user_to_json(user)}
+        raise HTTPException(
+            status_code=403,
+            detail="Please click on the activation link in your email to activate your account",
+        )
+
+    access_data = {
+        "sub": user.username,
+        "id": user.id,
+        "role": "user",
+        "user": user_to_json(user),
+    }
     access_token = create_access_token(access_data)
     refresh_token = create_refresh_token(access_data)
 
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True)
     return {"access_token": access_token, "token_type": "bearer"}
 
-async def get_refresh_token(response: Response, db: db_dependency, refresh_token: str = Depends(oauth2_bearer)):
+
+def get_refresh_token(
+    response: Response, db: db_dependency, refresh_token: str = Depends(oauth2_bearer)
+):
     try:
         payload = validate_refresh_token(refresh_token)
         user = db.query(User).filter(User.id == payload.get("id")).first()
         if not user:
             raise HTTPException(status_code=401, detail="Invalid user")
-        
-        access_data = {"sub": user.username, "id": user.id, 'role': 'user'}
+
+        access_data = {"sub": user.username, "id": user.id, "role": "user"}
         new_access_token = create_access_token(access_data)
         return {"access_token": new_access_token, "token_type": "bearer"}
     except HTTPException as e:
         response.delete_cookie(key="refresh_token")
         raise e
 
-################################### helper functions ############################################## 
+
+################################### helper functions ##############################################
+
 
 def user_to_json(user: User):
     return {
@@ -101,8 +135,10 @@ def user_to_json(user: User):
         "is_active": user.is_active,
     }
 
+
 def verify_password(plain_password: str, hashed_password: str):
     return bcrypt_context.verify(plain_password, hashed_password)
+
 
 def authenticate_user(db: Session, username: str, password: str, is_email=False):
     if is_email:
@@ -114,12 +150,14 @@ def authenticate_user(db: Session, username: str, password: str, is_email=False)
         return False
     return user
 
+
 def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=15)):
     to_encode = data.copy()
     expires = datetime.datetime.utcnow() + expires_delta
     to_encode.update({"exp": expires})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
 
 def decode_jwt(token: str):
     try:
@@ -131,40 +169,51 @@ def decode_jwt(token: str):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+
 def create_refresh_token(data: dict):
     expires_delta = timedelta(days=7)  # Longer expiration for refresh tokens
     return create_access_token(data, expires_delta)
+
 
 def validate_refresh_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
 
-def add_user_to_db(user_data:UserInput, db: db_dependency):
+
+def add_user_to_db(user_data: UserInput, db: db_dependency):
     user_model = User(
         email=user_data.email,
         username=user_data.username,
         first_name=user_data.first_name,
         last_name=user_data.last_name,
         hashed_password=bcrypt_context.hash(user_data.password),
-        is_active=False
+        is_active=False,
     )
     db.add(user_model)
     db.commit()
     db.refresh(user_model)
     return user_model
 
-async def get_current_user(token:Annotated[str, Depends(oauth2_bearer)]):
+
+def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         user_id: int = payload.get("id")
         user_role: str = payload.get("role")
         if username is None or user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication credentials")
-        return {"username": username, "id": user_id, 'user_role': 'user'}
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+            )
+        return {"username": username, "id": user_id, "user_role": "user"}
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication credentials")
-   
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+        )
