@@ -6,6 +6,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.routers import authRouter, commonRouter, locationRouter, newsRouter
+import uvicorn
 
 # Initialize the limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -34,3 +35,7 @@ app.include_router(authRouter.router)
 app.include_router(locationRouter.router)
 app.include_router(commonRouter.router)
 app.include_router(newsRouter.router)
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host='127.0.0.1', port=8000)

@@ -1,1 +1,8 @@
 alembic revision --autogenerate -m "adding user and writer"
+
+docker build -t mainframe .
+docker tag mainframe registry.digitalocean.com/farabix/mainframe
+docker push registry.digitalocean.com/farabix/mainframe
+
+
+docker run -p 8000:8000 mainframe
