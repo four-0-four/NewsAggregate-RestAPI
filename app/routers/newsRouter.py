@@ -1,6 +1,6 @@
 from fastapi import Request, UploadFile, File, Form
 from app.config.dependencies import db_dependency
-from app.models.news import NewsInput
+from app.models.news import NewsInput, NewsDescription
 from app.services.writerService import validate_writer
 from fastapi import HTTPException, Path, APIRouter, Depends
 from slowapi import Limiter
@@ -10,6 +10,7 @@ from app.services.authService import get_current_user
 from app.services.commonService import get_keyword, add_keyword
 from app.services.newsService import add_news_db, create_news_keyword, get_news_by_title, delete_news_by_title, \
     get_news_category, create_news_category
+from app.services.newsAnalyzer import extract_keywords
 
 router = APIRouter(prefix="/news", tags=["news"])
 limiter = Limiter(key_func=get_remote_address)
@@ -84,3 +85,14 @@ async def delete_news(
         raise HTTPException(status_code=409, detail="News does not exists")
 
     return {"message": "News deleted successfully.", "news_id": existing_news.id}
+
+
+@router.get("/acquireKeywords")
+@limiter.limit("10/minute")
+async def acquire_keywords(
+        request: Request,
+        user: user_dependency,
+        db: db_dependency,
+        newsDescription: NewsDescription):
+
+    return extract_keywords(newsDescription.description)
