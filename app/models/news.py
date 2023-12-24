@@ -33,6 +33,8 @@ class News(Base):
     affiliates = relationship("NewsAffiliates", back_populates="news")
     # Define a relationship with NewsMedia
     media = relationship("NewsMedia", back_populates="news")
+    # Define a relationship with NewsMedia
+    writers = relationship("NewsWriters", back_populates="news")
 
 # Define the NewsLocation table for tracking news locations
 class NewsLocation(Base):
@@ -82,6 +84,21 @@ class NewsKeywords(Base):
     # Define a relationship with News
     news = relationship("News", back_populates="keywords")
 
+# Define the newswriters table
+class NewsWriters(Base):
+    """
+    Table to store keywords associated with news articles.
+    """
+    __tablename__ = "newsWriters"
+
+    news_id = Column(Integer, ForeignKey('news.id'), primary_key=True)
+    writer_id = Column(Integer, ForeignKey('writers.id'), primary_key=True)
+    createdAt = Column(DateTime(timezone=True), server_default=func.now())
+    updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Define a relationship with News
+    news = relationship("News", back_populates="writers")
+
 # Define the NewsAffiliates table for tracking news affiliates and external links
 class NewsAffiliates(Base):
     """
@@ -123,9 +140,13 @@ class NewsInput(BaseModel):
     language_id: int
     isInternal: bool = True
     isPublished: bool = False
-    writer_id: int  # ID of the writer
+    writer_id: Optional[int]  # ID of the writer
     keywords: List[str]  # List of keyword IDs
     category_id: int
     
     class Config:
         from_attributes = True
+
+
+class NewsDescription(BaseModel):
+    description: str
