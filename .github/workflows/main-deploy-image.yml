@@ -54,4 +54,3 @@ jobs:
     - name: Push Docker image to registry
       run: |
         docker push registry.digitalocean.com/farabix/mainframe:latest
-        docker push registry.digitalocean.com/farabix/mainframe:$GITHUB_SHA
