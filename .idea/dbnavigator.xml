@@ -14,12 +14,13 @@
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="3b445873-1e4d-4200-911c-d29dfa0f4671">
       <console name="Production" type="STANDARD" schema="defaultdb" session="Main"><![CDATA[select
-    c.`createdAt`,
-    c.id,
-    c.name,
-    c.`updatedAt`
+    n.id,
+    n.language_id,
+    n.`organizationName`,
+    n.`parentOrganization`,
+    n.`yearFounded`
 from
-    categories c;]]></console>
+    `newsCorporations` n;]]></console>
     </connection>
     <connection id="ce34e6ec-df23-4d2b-ace6-32f501ebb34a">
       <console name="localhost" type="STANDARD" schema="" session="Main" />
@@ -29,9 +30,7 @@ from
     <last-used-providers />
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
-    <open-files>
-      <object connection-id="3b445873-1e4d-4200-911c-d29dfa0f4671" object-ref="consoles/Production" />
-    </open-files>
+    <open-files />
   </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
     <connection id="3b445873-1e4d-4200-911c-d29dfa0f4671" />

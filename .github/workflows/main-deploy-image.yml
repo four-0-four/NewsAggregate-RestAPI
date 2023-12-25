@@ -1,4 +1,4 @@
-name: Python application
+name: deploy image
 
 on:
   push:
@@ -34,14 +34,24 @@ jobs:
       run: |
         pytest
 
-    # Docker build and push steps
+    # Docker build steps for custom and latest tag
     - name: Build Docker image
-      run: docker build -t registry.digitalocean.com/farabix/mainframe .
+      run: |
+        docker build -t registry.digitalocean.com/farabix/mainframe:latest -t registry.digitalocean.com/farabix/mainframe:$GITHUB_SHA .
+
+    - name: Install doctl
+      run: |
+        wget https://github.com/digitalocean/doctl/releases/download/v1.64.0/doctl-1.64.0-linux-amd64.tar.gz
+        tar xf doctl-1.64.0-linux-amd64.tar.gz
+        sudo mv doctl /usr/local/bin
 
     - name: Log in to DigitalOcean Container Registry
       run: doctl registry login --expiry-seconds 600
       env:
         DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
+    # Push both tags to the registry
     - name: Push Docker image to registry
-      run: docker push registry.digitalocean.com/farabix/mainframe
+      run: |
+        docker push registry.digitalocean.com/farabix/mainframe:latest
+        docker push registry.digitalocean.com/farabix/mainframe:$GITHUB_SHA

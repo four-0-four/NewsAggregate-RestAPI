@@ -17,10 +17,10 @@ class NewsCorporations(Base):
     __tablename__ = "newsCorporations"
 
     id = Column(Integer, primary_key=True, index=True)
-    parentOrganization = Column(String(100))
-    organizationName = Column(String(100))
+    fullName = Column(String(100))
+    shortName = Column(String(100))
     yearFounded = Column(Integer)
-    language_id = Column(Integer, ForeignKey('languages.id'))
+    country = Column(String(100))
     
 class Language(Base):
     __tablename__ = "languages"
