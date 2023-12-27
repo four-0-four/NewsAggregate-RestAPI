@@ -7,9 +7,10 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from typing import Annotated
 from app.services.authService import get_current_user
-from app.services.commonService import get_keyword, add_keyword
+from app.services.commonService import get_keyword, add_keyword, get_category, add_category_db, add_media_by_url_to_db, \
+    get_media_by_url
 from app.services.newsService import add_news_db, create_news_keyword, get_news_by_title, delete_news_by_title, \
-    get_news_category, create_news_category
+    get_news_category, create_news_category, create_news_media
 from app.services.newsAnalyzer import extract_keywords
 
 router = APIRouter(prefix="/news", tags=["news"])
@@ -30,7 +31,7 @@ async def create_news(
         raise HTTPException(status_code=409, detail="News already exists")
 
     writer_id = news_input.writer_id
-    if not validate_writer(db, writer_id):
+    if writer_id and not validate_writer(db, writer_id):
         raise HTTPException(status_code=404, detail="Writer not found")
 
     # adding the news to the database
@@ -47,11 +48,27 @@ async def create_news(
         # Add the keyword to the newsKeywords table
         newsKeyword = create_news_keyword(db, news.id, existing_keyword.id)
 
-    #add news category to the database if not exists
-    existing_news_category = get_news_category(db, news.id, news_input.category_id)
-    if not existing_news_category:
-        # Add the news category if it does not exist
-        existing_news_category = create_news_category(db, news.id, news_input.category_id)
+    # adding categories to the database if not exists
+    for category in news_input.categories:
+        # Check if the keyword exists
+        existing_category = get_category(db, category)
+        if "category" not in existing_category:
+            # Add the keyword if it does not exist
+            existing_category = add_category_db(db, category)
+        print(existing_category)
+        # Add the keyword to the newsKeywords table
+        newsCategory = create_news_category(db, news.id, existing_category["category"].id)
+
+    # adding categories to the database if not exists
+    for media_url in news_input.media_urls:
+        # Check if the keyword exists
+        existing_media = get_media_by_url(db, media_url, news_input.isInternal)
+        if not existing_media:
+            # Add the keyword if it does not exist
+            existing_media = add_media_by_url_to_db(db, media_url, news_input.isInternal)
+
+        # Add the keyword to the newsKeywords table
+        newsCategory = create_news_media(db, news.id, existing_media.id)
 
     # await add_medias_to_news(news.id, news_input.media_files)
     return {"message": "News added successfully."}
