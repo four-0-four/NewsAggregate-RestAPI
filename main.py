@@ -36,6 +36,9 @@ app.include_router(locationRouter.router)
 app.include_router(commonRouter.router)
 app.include_router(newsRouter.router)
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host='127.0.0.1', port=8000)
