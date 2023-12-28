@@ -104,7 +104,8 @@ def test_register_invalid_password():
     except ValidationError as e:
         assert "validation error for UserInput" in str(e) and "password" in str(e)
 
-def test_login_valid_user():
+
+def login_test_user():
     # Arrange
     valid_user = {
         "username": "sina",
@@ -113,10 +114,17 @@ def test_login_valid_user():
 
     # Act
     response = client.post("/auth/user/login", data=valid_user)
-    
+
     # Decode the JWT
     token_data = decode_jwt(response.json()["access_token"])
 
+    return {"token_data": token_data, "response": response, "valid_user": valid_user}
+
+def test_login_valid_user():
+    logged_in_user = login_test_user()
+    token_data = logged_in_user['token_data']
+    response = logged_in_user['response']
+    valid_user = logged_in_user['valid_user']
     # Check the username
     assert token_data["sub"] == valid_user["username"]
     assert token_data["user"]["is_active"] == True
