@@ -47,5 +47,6 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50))
+    parent_id = Column(Integer, nullable=False)
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
