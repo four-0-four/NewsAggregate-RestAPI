@@ -16,16 +16,18 @@ def test_add_news_db():
 
     # Arrange
     news_input = NewsInput(
-        title="Test News1: this is just a test6",
+        title="Test News1: this is just a test69",
         description="Test Description",
         content="This is a test content for the news.",
         publishedDate=datetime.now().isoformat(),  # Convert to string
         language_id=1,
         isInternal=False,
         isPublished=True,
-        writer_id=1,
         keywords=["test", "news", "pytest"],
         category_id=1,
+        media_urls=["https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"],
+        categories=["sample"],
+        writer_id=None
     )
 
     # Convert all datetime fields to strings
@@ -43,12 +45,12 @@ def test_add_news_db():
     assert response.json() == {"message": "News added successfully."}
     assert response.status_code == 200
 
-    tst_get_news_db()
-    tst_delete_news_db()
+    test_get_news_db()
+    #test_delete_news_db()
 
 
-def tst_get_news_db():
-    news_title = "Test News1: this is just a test6"
+def test_get_news_db():
+    news_title = "Test News1: this is just a test69"
     jwt_token = test_login_valid_user()
     headers = {"Authorization": f"Bearer {jwt_token}"}
 
@@ -66,8 +68,8 @@ def tst_get_news_db():
     return response_data["news_id"]
 
 
-def tst_delete_news_db():
-    news_title = "Test News1: this is just a test6"
+def test_delete_news_db():
+    news_title = "Test News1: this is just a test69"
     jwt_token = test_login_valid_user()
     headers = {"Authorization": f"Bearer {jwt_token}"}
 
