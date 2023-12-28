@@ -7,7 +7,7 @@ class Media(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     type = Column(String(30), nullable=False)
-    fileName = Column(String(100), nullable=False)
+    fileName = Column(String(255), nullable=False)
     fileExtension = Column(String(20), nullable=False)
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
@@ -17,10 +17,12 @@ class NewsCorporations(Base):
     __tablename__ = "newsCorporations"
 
     id = Column(Integer, primary_key=True, index=True)
-    fullName = Column(String(100))
-    shortName = Column(String(100))
-    yearFounded = Column(Integer)
-    country = Column(String(100))
+    name = Column(String(100))
+    parent = Column(String(100))
+    url = Column(String(300))
+    logo = Column(String(300))
+    language = Column(String(100))
+    location = Column(String(100))
     
 class Language(Base):
     __tablename__ = "languages"

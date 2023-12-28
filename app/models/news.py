@@ -133,17 +133,19 @@ class NewsMedia(Base):
 
 ############################## pydantic models ##############################
 class NewsInput(BaseModel):
+
     title: str
     description: Optional[str] = None
     content: str
     publishedDate: datetime
     language_id: int
-    isInternal: bool = True
+    isInternal: bool = False
     isPublished: bool = False
-    writer_id: Optional[int]  # ID of the writer
+    writer_id: Optional[str]  # ID of the writer
     keywords: List[str]  # List of keyword IDs
-    category_id: int
-    
+    categories: List[str]
+    media_urls: Optional[List[str]]
+
     class Config:
         from_attributes = True
 

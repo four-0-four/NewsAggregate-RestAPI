@@ -6,26 +6,43 @@ from app.models.news import NewsInput
 from unittest.mock import create_autospec
 from fastapi.testclient import TestClient
 from main import app
-from tests.test_authRouter import test_login_valid_user
+from tests.test_authRouter import test_login_valid_user, login_test_user
 
 client = TestClient(app)
 
 
+
+def get_test_news():
+    news_title = "Test News1: this is just a test69"
+    logged_in_user = login_test_user()
+    response = logged_in_user['response']
+    jwt_token = response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+
+    # Act
+    response = client.get(f"/news/get?news_title={news_title}", headers=headers)
+    return response.json()
+
 def test_add_news_db():
     jwt_token = test_login_valid_user()
-
+    response_data = get_test_news()
+    print(response_data)
+    if "message" in response_data and response_data["message"] == "News found successfully.":
+        test_delete_news_db()
     # Arrange
     news_input = NewsInput(
-        title="Test News1: this is just a test6",
+        title="Test News1: this is just a test69",
         description="Test Description",
         content="This is a test content for the news.",
         publishedDate=datetime.now().isoformat(),  # Convert to string
         language_id=1,
         isInternal=False,
         isPublished=True,
-        writer_id=1,
         keywords=["test", "news", "pytest"],
         category_id=1,
+        media_urls=["https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"],
+        categories=["sample"],
+        writer_id=None
     )
 
     # Convert all datetime fields to strings
@@ -48,7 +65,7 @@ def test_add_news_db():
 
 
 def tst_get_news_db():
-    news_title = "Test News1: this is just a test6"
+    news_title = "Test News1: this is just a test69"
     jwt_token = test_login_valid_user()
     headers = {"Authorization": f"Bearer {jwt_token}"}
 
@@ -67,7 +84,7 @@ def tst_get_news_db():
 
 
 def tst_delete_news_db():
-    news_title = "Test News1: this is just a test6"
+    news_title = "Test News1: this is just a test69"
     jwt_token = test_login_valid_user()
     headers = {"Authorization": f"Bearer {jwt_token}"}
 

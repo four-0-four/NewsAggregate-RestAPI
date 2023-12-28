@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.common import Media
+import os
 
 # app/controllers/auth_controller.py
 from app.models.common import Media, Keyword, Category
@@ -17,6 +18,41 @@ def get_media_by_name_and_type(
         )
         .first()
     )
+
+
+def get_media_by_url(db: Session, url: str, isInternal: bool):
+    if isInternal:
+        # Extracting fileName, fileExtension, and type from the URL
+        mediaparts = url.split('/')
+        mediatype = mediaparts[0]
+        mediafileName, mediafileExtension = os.path.splitext(mediaparts[1])
+        mediafileExtension = mediafileExtension[1:]  # Remove the dot from the extension
+        # Query the database
+        return db.query(Media).filter_by(type=mediatype, fileName=mediafileName, fileExtension=mediafileExtension).first()
+    else:
+        # Directly compare the fileName with the URL for external links
+        return db.query(Media).filter_by(fileName=url).first()
+
+
+def add_media_by_url_to_db(db: Session, url: str, isInternal: bool):
+    if isInternal:
+        # Extracting fileName, fileExtension, and type from the URL
+        mediaparts = url.split('/')
+        mediatype = mediaparts[0]
+        mediafileName, mediafileExtension = os.path.splitext(mediaparts[1])
+        mediafileExtension = mediafileExtension[1:]  # Remove the dot from the extension
+    else:
+        # For external URLs, the entire URL is considered as fileName
+        mediatype = None
+        mediafileName = url
+        mediafileExtension = url.split('.')[-1]
+
+    # Create a new Media instance
+    new_media = Media(type=type, fileName=mediafileName, fileExtension=mediafileExtension)
+    db.add(new_media)
+    db.commit()
+    db.refresh(new_media)
+    return new_media
 
 
 def delete_media(db: Session, media_id: int):
@@ -65,4 +101,4 @@ def get_category(db: Session, category: str):
     existing_category = db.query(Category).filter(Category.name == category).first()
     if existing_category is None:
         return {"message": "Category not found"}
-    return {"message": "Got category successfully", "category": existing_category.name}
+    return {"message": "Got category successfully", "category": existing_category}

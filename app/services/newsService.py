@@ -43,11 +43,14 @@ def delete_news_by_title(db: Session, news_title: str):
     news = db.query(News).filter(News.title == news_title).first()
 
     if news:
+        # Delete associated NewsCategories
+        db.query(NewsCategory).filter(NewsCategory.news_id == news.id).delete()
+
         # Delete associated NewsKeywords
         db.query(NewsKeywords).filter(NewsKeywords.news_id == news.id).delete()
 
-        # Delete associated NewsCategories
-        db.query(NewsCategory).filter(NewsCategory.news_id == news.id).delete()
+        # Delete associated NewsMedia
+        db.query(NewsMedia).filter(NewsMedia.news_id == news.id).delete()
 
         # TODO: Delete associated NewsAffiliates
 
@@ -98,5 +101,23 @@ def get_news_keyword(db: Session, news_id: int, keyword_id: int):
     return (
         db.query(NewsKeywords)
         .filter(NewsKeywords.news_id == news_id, NewsKeywords.keyword_id == keyword_id)
+        .first()
+    )
+
+
+def create_news_media(db: Session, news_id: int, media_id: int):
+    news_media = get_news_media(db, news_id, media_id)
+    if not news_media:
+        news_media = NewsMedia(news_id=news_id, media_id=media_id)
+        db.add(news_media)
+        db.commit()
+        db.refresh(news_media)
+    return news_media
+
+
+def get_news_media(db: Session, news_id: int, media_id: int):
+    return (
+        db.query(NewsMedia)
+        .filter(NewsMedia.news_id == news_id, NewsMedia.media_id == media_id)
         .first()
     )

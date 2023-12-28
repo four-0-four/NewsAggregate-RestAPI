@@ -63,7 +63,7 @@ async def upload_document(
     # Save the URL in the database
     media_record = save_media(db, file_name, file_type, file_ext)
 
-    return {"file_name": file_name, "id": media_record.id}
+    return {"full_file_path": f"{file_path}{file_name}.{file_ext}", "id": media_record.id}
 
 
 @router.delete("/file/delete/")
