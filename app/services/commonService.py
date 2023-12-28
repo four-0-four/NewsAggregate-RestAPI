@@ -4,6 +4,7 @@ import os
 
 # app/controllers/auth_controller.py
 from app.models.common import Media, Keyword, Category
+from app.services.newsService import create_news_category
 
 
 def get_media_by_name_and_type(
@@ -81,24 +82,86 @@ def add_keyword(db: Session, keyword: str):
     return new_keyword
 
 
-def add_category_db(db: Session, category_name: str):
-    # First, check if the category already exists
-    existing_category = db.query(Category).filter(Category.name == category_name).first()
+def add_news_categories_db(db: Session, category_path: str, news_id: int):
+    # Split the category path into hierarchical components
+    categories = category_path.strip("/").split("/")
+    category_ids = []
+    parent_id = 0  # Start with the root parent_id
+    for category_name in categories:
+        # Check if the category already exists
+        existing_category = db.query(Category).filter(
+            Category.name == category_name and Category.parent_id == parent_id
+        ).first()
 
-    # If the category does not exist, add it
-    if existing_category is None:
-        new_category = Category(name=category_name)
-        db.add(new_category)
-        db.commit()
-        db.refresh(new_category)  # Load the data from the database
-        return {"message": "Category added successfully", "category": new_category}
+        if existing_category is None:
+            # If the category does not exist, add it
+            new_category = Category(name=category_name, parent_id=parent_id)
+            db.add(new_category)
+            db.commit()
+            db.refresh(new_category)
+            create_news_category(db, news_id, new_category.id)
+            category_ids.append(new_category.id)
+            parent_id = new_category.id  # Update parent_id for the next level
+        else:
+            # If the category exists, use its ID as the parent_id for the next level
+            create_news_category(db, news_id, existing_category.id)
+            category_ids.append(existing_category.id)
+            parent_id = existing_category.id
+
+    return {"message": "Category processed successfully", "category_ids": category_ids}
+
+
+def add_category_db(db: Session, category_path: str, news_id: int):
+    # Split the category path into hierarchical components
+    categories = category_path.strip("/").split("/")
+    category_ids = []
+    parent_id = 0  # Start with the root parent_id
+    for category_name in categories:
+        # Check if the category already exists
+        existing_category = db.query(Category).filter(
+            Category.name == category_name and Category.parent_id == parent_id
+        ).first()
+
+        if existing_category is None:
+            # If the category does not exist, add it
+            new_category = Category(name=category_name, parent_id=parent_id)
+            db.add(new_category)
+            db.commit()
+            db.refresh(new_category)
+            category_ids.append(new_category.id)
+            parent_id = new_category.id  # Update parent_id for the next level
+        else:
+            # If the category exists, use its ID as the parent_id for the next level
+            category_ids.append(existing_category.id)
+            parent_id = existing_category.id
+
+    return {"message": "Category processed successfully", "category_ids": category_ids}
+
+
+def get_category(db: Session, category_path: str):
+    existing_category = None
+    if "/" not in category_path:
+        existing_category = db.query(Category).filter(
+            Category.name == category_path,
+        ).first()
     else:
-        # If the category already exists, return a message indicating it
-        return {"message": "Category already exists, no action taken", "category": existing_category}
+        # Split the category path into hierarchical components
+        categories = category_path.strip("/").split("/")
 
+        parent_id = 0  # Start with the root parent_id
+        for category_name in categories:
+            # Find the category at this level of the hierarchy
+            existing_category = db.query(Category).filter(
+                Category.name == category_name,
+                Category.parent_id == parent_id
+            ).first()
 
-def get_category(db: Session, category: str):
-    existing_category = db.query(Category).filter(Category.name == category).first()
-    if existing_category is None:
-        return {"message": "Category not found"}
+            if existing_category is None:
+                # If the category at this level doesn't exist, return not found
+                return {"message": "Category not found"}
+
+            # Update parent_id for the next level in the hierarchy
+            parent_id = existing_category.id
+
+    # After finding the category at the last level, return it
     return {"message": "Got category successfully", "category": existing_category}

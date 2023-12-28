@@ -8,7 +8,7 @@ from slowapi.util import get_remote_address
 from typing import Annotated
 from app.services.authService import get_current_user
 from app.services.commonService import get_keyword, add_keyword, get_category, add_category_db, add_media_by_url_to_db, \
-    get_media_by_url
+    get_media_by_url, add_news_categories_db
 from app.services.newsService import add_news_db, create_news_keyword, get_news_by_title, delete_news_by_title, \
     get_news_category, create_news_category, create_news_media
 from app.services.newsAnalyzer import extract_keywords
@@ -63,16 +63,10 @@ async def create_news(
         # Add the keyword to the newsKeywords table
         newsKeyword = create_news_keyword(db, news.id, existing_keyword.id)
 
-    # adding categories to the database if not exists
+    # processing the categories and adding them to the database of both news and categories if not exists
     for category in news_input.categories:
-        # Check if the keyword exists
-        existing_category = get_category(db, category)
-        if "category" not in existing_category:
-            # Add the keyword if it does not exist
-            existing_category = add_category_db(db, category)
-        print(existing_category)
-        # Add the keyword to the newsKeywords table
-        newsCategory = create_news_category(db, news.id, existing_category["category"].id)
+        add_news_categories_db(db, category, news.id)
+
 
     # adding categories to the database if not exists
     for media_url in news_input.media_urls:
