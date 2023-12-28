@@ -33,12 +33,12 @@ def test_upload_file():
 
     # Assert - Check upload success
     assert upload_response.status_code == 200
-    assert "file_name" in upload_response.json()
+    assert "full_file_path" in upload_response.json()
 
     # Get the uploaded file name for deletion
-    uploaded_file_name = upload_response.json()["file_name"]
+    full_file_path = upload_response.json()["full_file_path"]
 
-    return uploaded_file_name, jwt_token
+    return full_file_path, jwt_token
 
 def test_upload_invalid_file_type():
     # Login and get JWT token
@@ -66,8 +66,8 @@ def test_upload_invalid_file_type():
 
 def test_delete_uploaded_file():
     # Execute the upload test to get the necessary details
-    uploaded_file_name, jwt_token = test_upload_file()
-
+    full_file_path, jwt_token = test_upload_file()
+    uploaded_file_name = full_file_path.split("/")[-1]
     # Extract file type and file extension from the uploaded file name
     file_type = "website"  # Replace with actual file type
     file_ext = uploaded_file_name.split(".")[-1]  # Assuming file_name includes the extension
