@@ -23,7 +23,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/user/signup")
-@limiter.limit("8/minute")
+@limiter.limit("80/minute")
 async def create_user(
     request: Request,
     response: Response,
@@ -34,7 +34,7 @@ async def create_user(
 
 
 @router.delete("/user/delete/{username}")
-@limiter.limit("8/minute")
+@limiter.limit("80/minute")
 async def delete_user(
     request: Request, response: Response, username: str, db: Session = Depends(get_db)
 ):
@@ -42,7 +42,7 @@ async def delete_user(
 
 
 @router.post("/user/login")
-@limiter.limit("20/minute")
+@limiter.limit("200/minute")
 async def login_for_access_token(
     request: Request,
     response: Response,

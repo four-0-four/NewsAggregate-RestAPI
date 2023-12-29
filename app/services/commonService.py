@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.common import Media
 import os
+import re
 
 # app/controllers/auth_controller.py
 from app.models.common import Media, Keyword, Category
@@ -82,7 +83,26 @@ def add_keyword(db: Session, keyword: str):
     return new_keyword
 
 
+def is_category_path_invalid(category_path: str):
+    # Regular expression for allowed characters in category names
+    valid_name_pattern = re.compile(r'^[A-Za-z0-9-/]+$')
+
+    # Check for consecutive forward slashes
+    if '//' in category_path:
+        return True
+
+    # Validate the entire path before splitting into categories
+    if not valid_name_pattern.match(category_path):
+        return True
+
+    # category_path can not be empty
+    if len(category_path) == 0:
+        return True
+
 def add_news_categories_db(db: Session, category_path: str, news_id: int):
+    if is_category_path_invalid(category_path):
+        return {"message": "Invalid category path"}
+
     # Split the category path into hierarchical components
     categories = category_path.strip("/").split("/")
     category_ids = []
@@ -111,7 +131,10 @@ def add_news_categories_db(db: Session, category_path: str, news_id: int):
     return {"message": "Category processed successfully", "category_ids": category_ids}
 
 
-def add_category_db(db: Session, category_path: str, news_id: int):
+def add_category_db(db: Session, category_path: str):
+    if is_category_path_invalid(category_path):
+        return {"message": "Invalid category path"}
+
     # Split the category path into hierarchical components
     categories = category_path.strip("/").split("/")
     category_ids = []
@@ -139,6 +162,9 @@ def add_category_db(db: Session, category_path: str, news_id: int):
 
 
 def get_category(db: Session, category_path: str):
+    if is_category_path_invalid(category_path):
+        return {"message": "Invalid category path"}
+
     existing_category = None
     if "/" not in category_path:
         existing_category = db.query(Category).filter(
@@ -163,5 +189,68 @@ def get_category(db: Session, category_path: str):
             # Update parent_id for the next level in the hierarchy
             parent_id = existing_category.id
 
+    # Check if the category is found after going through the loop
+    if existing_category is None:
+        return {"message": "Category not found"}
+
     # After finding the category at the last level, return it
     return {"message": "Got category successfully", "category": existing_category}
+
+
+def delete_last_category(db: Session, category_path: str):
+    if is_category_path_invalid(category_path):
+        return {"message": "Invalid category path"}
+
+    # Find the last category using similar logic as in get_category
+    existing_category = None
+    if "/" not in category_path:
+        existing_category = db.query(Category).filter(
+            Category.name == category_path,
+        ).first()
+    else:
+        categories = category_path.strip("/").split("/")
+        parent_id = 0
+        for category_name in categories:
+            existing_category = db.query(Category).filter(
+                Category.name == category_name,
+                Category.parent_id == parent_id
+            ).first()
+            if existing_category:
+                parent_id = existing_category.id
+
+    if existing_category is None:
+        return {"message": "Category not found"}
+
+    # Delete the found category
+    db.delete(existing_category)
+    db.commit()
+
+    return {"message": "Category deleted successfully", "category": existing_category}
+
+
+def delete_all_categories_in_path(db: Session, category_path: str):
+    if is_category_path_invalid(category_path):
+        return {"message": "Invalid category path"}
+
+    if "/" not in category_path:
+        # If the path is a single category, just delete this category
+        return delete_last_category(db, category_path)
+
+    categories = category_path.strip("/").split("/")
+    parent_id = 0
+    for category_name in categories:
+        # Find and delete each category in the path
+        existing_category = db.query(Category).filter(
+            Category.name == category_name,
+            Category.parent_id == parent_id
+        ).first()
+
+        if existing_category is None:
+            return {"message": f"Category '{category_name}' not found in path"}
+
+        # Delete the category and update parent_id for the next iteration
+        db.delete(existing_category)
+        parent_id = existing_category.id
+        db.commit()
+
+    return {"message": "All categories in path deleted successfully"}

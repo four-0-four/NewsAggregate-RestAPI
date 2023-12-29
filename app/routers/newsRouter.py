@@ -19,7 +19,7 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
 @router.post("/add")
-@limiter.limit("10/minute")
+@limiter.limit("100/minute")
 async def create_news(
         request: Request,
         user: user_dependency,
@@ -84,7 +84,7 @@ async def create_news(
 
 
 @router.get("/get")
-@limiter.limit("10/minute")
+@limiter.limit("100/minute")
 async def get_news(
         request: Request,
         user: user_dependency,
@@ -99,7 +99,7 @@ async def get_news(
 
 
 @router.delete("/delete")
-@limiter.limit("10/minute")
+@limiter.limit("100/minute")
 async def delete_news(
         request: Request,
         user: user_dependency,
