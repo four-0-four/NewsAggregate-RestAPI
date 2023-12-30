@@ -10,7 +10,7 @@ from app.services.authService import get_current_user
 from app.services.commonService import get_keyword, add_keyword, get_category, add_category_db, add_media_by_url_to_db, \
     get_media_by_url, add_news_categories_db
 from app.services.newsService import add_news_db, create_news_keyword, get_news_by_title, delete_news_by_title, \
-    get_news_category, create_news_category, create_news_media
+    get_news_category, create_news_category, create_news_media, get_news_by_category, get_news_by_keyword
 from app.services.newsAnalyzer import extract_keywords
 
 router = APIRouter(prefix="/news", tags=["news"])
@@ -118,3 +118,21 @@ async def acquire_keywords(
         newsDescription: NewsDescription):
 
     return extract_keywords(newsDescription.description)
+
+
+@router.get("/getNewsbyCategoryID")
+async def get_news_by_category_id(
+        request: Request,
+        user: user_dependency,
+        db: db_dependency,
+        category_id: int):
+    return get_news_by_category(db, category_id)
+
+
+@router.get("/getNewsbyKeywordID")
+async def get_news_by_category_id(
+        request: Request,
+        user: user_dependency,
+        db: db_dependency,
+        keyword_id: int):
+    return get_news_by_keyword(db, keyword_id)

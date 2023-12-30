@@ -128,3 +128,27 @@ def get_news_media(db: Session, news_id: int, media_id: int):
         .filter(NewsMedia.news_id == news_id, NewsMedia.media_id == media_id)
         .first()
     )
+
+
+def get_news_by_category(db: Session, category_id: int):
+    # Assuming there's a relationship defined between News and NewsCategory
+    # This will join News with NewsCategory and filter by the provided category_id
+    # Finally, it will return a list of News objects
+    return (
+        db.query(News)
+        .join(NewsCategory)
+        .filter(NewsCategory.category_id == category_id)
+        .all()
+    )
+
+
+def get_news_by_keyword(db: Session, keyword_id: int):
+    # Assuming there's a relationship defined between News and NewsCategory
+    # This will join News with NewsCategory and filter by the provided category_id
+    # Finally, it will return a list of News objects
+    return (
+        db.query(News)
+        .join(NewsKeywords)
+        .filter(NewsKeywords.keyword_id == keyword_id)
+        .all()
+    )

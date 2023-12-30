@@ -17,7 +17,7 @@ class News(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(300), nullable=False)  # Title is required
     description = Column(String(800), nullable=False)  # Description can be optional
-    content = Column(String(5000), nullable=False)  # Content is required
+    content = Column(String(10000), nullable=False)  # Content is required
     publishedDate = Column(DateTime(timezone=True), nullable=False)  # Published date is required
     language_id = Column(Integer, ForeignKey('languages.id'), nullable=False)
     isInternal = Column(Boolean, nullable=False, default=True)  # Default to True
