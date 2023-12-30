@@ -48,7 +48,8 @@ def add_media_by_url_to_db(db: Session, url: str, isInternal: bool):
         mediatype = None
         mediafileName = url
         mediafileExtension = url.split('.')[-1]
-
+    print("********************************")
+    print(f"fileName: {mediafileName}, fileExtension: {mediafileExtension}, type: {mediatype}")
     # Create a new Media instance
     new_media = Media(type=type, fileName=mediafileName, fileExtension=mediafileExtension)
     db.add(new_media)
