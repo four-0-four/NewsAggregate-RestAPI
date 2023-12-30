@@ -75,7 +75,6 @@ async def create_news(
             # Add the keyword if it does not exist
             existing_media = add_media_by_url_to_db(db, media_url, news_input.isInternal)
 
-        # Add the keyword to the newsKeywords table
         newsCategory = create_news_media(db, news.id, existing_media.id)
 
     # await add_medias_to_news(news.id, news_input.media_files)

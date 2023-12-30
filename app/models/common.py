@@ -7,7 +7,7 @@ class Media(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     type = Column(String(30), nullable=False)
-    fileName = Column(String(255), nullable=False)
+    fileName = Column(String(1000), nullable=False)
     fileExtension = Column(String(20), nullable=False)
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
