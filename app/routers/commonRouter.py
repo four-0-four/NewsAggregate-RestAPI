@@ -8,7 +8,7 @@ from slowapi.util import get_remote_address
 from app.services.commonService import (
     save_media,
     add_category_db,
-    get_category,
+    get_category, delete_last_category,
 )
 from app.util.fileUpload import upload_to_spaces, delete_from_spaces, DeleteError
 from fastapi import UploadFile, HTTPException
@@ -29,7 +29,6 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 @router.post("/file/upload/")
-@limiter.limit("10/minute")
 async def upload_document(
     request: Request,
     user: user_dependency,
@@ -67,7 +66,7 @@ async def upload_document(
 
 
 @router.delete("/file/delete/")
-@limiter.limit("10/minute")
+@limiter.limit("100/minute")
 async def delete_document(
     request: Request,
     user: user_dependency,
@@ -94,23 +93,44 @@ async def delete_document(
 
 
 @router.get("/category")
-@limiter.limit("10/minute")
-async def get_category(
+async def query_category(
     request: Request,
     user: user_dependency,
     db: db_dependency,
     category: str
 ):
-    return get_category(db, category)
+    response = get_category(db, category)
+    if response.get("message") == "Invalid category path":
+        raise HTTPException(status_code=400, detail="Invalid category path")
+    elif response.get("message") == "Category not found":
+        raise HTTPException(status_code=404, detail="Category not found")
+    return response
 
 
 @router.post("/category")
-@limiter.limit("10/minute")
+@limiter.limit("100/minute")
 async def add_category(
     request: Request,
     user: user_dependency,
     db: db_dependency,
     category: str
 ):
-    return add_category_db(db, category)
+    result = add_category_db(db, category)
+    if result.get("message") == "Invalid category path":
+        raise HTTPException(status_code=400, detail="Invalid category path")
+    return result
+
+@router.delete("/category")
+@limiter.limit("100/minute")
+async def delete_one_category(
+    request: Request,
+    user: user_dependency,
+    db: db_dependency,
+    category: str
+):
+    response = delete_last_category(db, category)
+    if response.get("message") == "Invalid category path":
+        raise HTTPException(status_code=400, detail="Invalid category path")
+    return response
+
 
