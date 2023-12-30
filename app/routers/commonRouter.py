@@ -29,7 +29,6 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 @router.post("/file/upload/")
-@limiter.limit("100/minute")
 async def upload_document(
     request: Request,
     user: user_dependency,
@@ -94,7 +93,6 @@ async def delete_document(
 
 
 @router.get("/category")
-@limiter.limit("100/minute")
 async def query_category(
     request: Request,
     user: user_dependency,
