@@ -45,11 +45,10 @@ def add_media_by_url_to_db(db: Session, url: str, isInternal: bool):
         mediafileExtension = mediafileExtension[1:]  # Remove the dot from the extension
     else:
         # For external URLs, the entire URL is considered as fileName
-        mediatype = None
+        mediatype = 'external'
         mediafileName = url
-        mediafileExtension = url.split('.')[-1]
-    print("********************************")
-    print(f"fileName: {mediafileName}, fileExtension: {mediafileExtension}, type: {mediatype}")
+        mediafileExtension = 'external'
+
     # Create a new Media instance
     new_media = Media(type=type, fileName=mediafileName, fileExtension=mediafileExtension)
     db.add(new_media)
