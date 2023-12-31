@@ -1,3 +1,5 @@
+from datetime import timedelta, datetime
+
 from app.models.writer import Writer
 from sqlalchemy.orm import Session
 from app.models.news import (
@@ -130,14 +132,21 @@ def get_news_media(db: Session, news_id: int, media_id: int):
     )
 
 
-def get_news_by_category(db: Session, category_id: int):
-    # Assuming there's a relationship defined between News and NewsCategory
-    # This will join News with NewsCategory and filter by the provided category_id
-    # Finally, it will return a list of News objects
+def get_news_by_category(db: Session, category_id: int, hours: int = 0):
+    if hours == 0 or hours is None:
+        return (
+            db.query(News)
+            .join(NewsCategory)
+            .filter(NewsCategory.category_id == category_id)
+            .all()
+        )
+
+    twelve_hours_ago = datetime.utcnow() - timedelta(hours=hours)
     return (
         db.query(News)
         .join(NewsCategory)
         .filter(NewsCategory.category_id == category_id)
+        .filter(News.publishedDate >= twelve_hours_ago)
         .all()
     )
 

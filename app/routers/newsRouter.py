@@ -95,6 +95,19 @@ async def get_news(
     return {"message": "News found successfully.", "news_id": existing_news.id}
 
 
+@router.get("/getByCategory/past12hr")
+async def get_news_by_category_last_12hr(
+        request: Request,
+        user: user_dependency,
+        db: db_dependency,
+        category_id: int):
+    # check if title is unique
+    existing_news = get_news_by_category(db, category_id, 12)
+    if not existing_news:
+        raise HTTPException(status_code=409, detail="no news found")
+
+    return {"message": "News found successfully.", "news": existing_news}
+
 @router.delete("/delete")
 async def delete_news(
         request: Request,
