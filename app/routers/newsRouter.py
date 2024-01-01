@@ -8,9 +8,10 @@ from slowapi.util import get_remote_address
 from typing import Annotated
 from app.services.authService import get_current_user
 from app.services.commonService import get_keyword, add_keyword, get_category, add_category_db, add_media_by_url_to_db, \
-    get_media_by_url, add_news_categories_db
+    get_media_by_url, add_news_categories_db, get_category_by_id
 from app.services.newsService import add_news_db, create_news_keyword, get_news_by_title, delete_news_by_title, \
-    get_news_category, create_news_category, create_news_media, get_news_by_category, get_news_by_keyword
+    get_news_category, create_news_category, create_news_media, get_news_by_category, get_news_by_keyword, \
+    get_news_for_video
 from app.services.newsAnalyzer import extract_keywords
 
 router = APIRouter(prefix="/news", tags=["news"])
@@ -107,6 +108,44 @@ async def get_news_by_category_last_12hr(
         raise HTTPException(status_code=409, detail="no news found")
 
     return {"message": "News found successfully.", "news": existing_news}
+
+
+@router.get("/getByCategory/past24hr")
+async def get_news_by_category_last_24hr(
+        request: Request,
+        user: user_dependency,
+        db: db_dependency,
+        category_id: int):
+    # check if title is unique
+    existing_news = get_news_by_category(db, category_id, 24)
+    if not existing_news:
+        raise HTTPException(status_code=409, detail="no news found")
+
+    return {"message": "News found successfully.", "news": existing_news}
+
+
+@router.get("/getForVideo/past12hr")
+async def get_news_for_video_last_12hr(
+        request: Request,
+        user: user_dependency,
+        db: db_dependency,
+        category_id: int):
+    existing_news = get_news_for_video(db, category_id, 12)
+    category = get_category_by_id(db, category_id)
+    return {"category": category.name, "news": existing_news}
+
+
+@router.get("/getForVideo/past24hr")
+async def get_news_for_video_last_24hr(
+        request: Request,
+        user: user_dependency,
+        db: db_dependency,
+        category_id: int):
+    # check if title is unique
+    existing_news = get_news_for_video(db, category_id, 24)
+    category = get_category_by_id(db, category_id)
+    return {"category": category.name, "news": existing_news}
+
 
 @router.delete("/delete")
 async def delete_news(

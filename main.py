@@ -41,6 +41,6 @@ def health_check():
     return {"status": "ok"}
 
 if __name__ == "__main__":
-    config = uvicorn.Config(app=app, host="0.0.0.0", port=8080, workers=4)
+    config = uvicorn.Config(app=app, host="0.0.0.0", port=8080, workers=4, reload=True)
     server = uvicorn.Server(config)
     server.run()

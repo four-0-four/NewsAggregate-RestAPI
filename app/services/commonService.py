@@ -83,6 +83,13 @@ def add_keyword(db: Session, keyword: str):
     return new_keyword
 
 
+def get_category_by_id(db: Session, category_id:int):
+    existing_category = db.query(Category).filter(
+        Category.id == category_id,
+    ).first()
+    return existing_category
+
+
 def is_category_path_invalid(category_path: str):
     # Regular expression for allowed characters in category names
     valid_name_pattern = re.compile(r'^[A-Za-z0-9-/]+$')
