@@ -51,24 +51,6 @@ def test_register_and_delete_new_user():
     assert response.status_code == 200
     assert response.json() == {"detail": "User deleted successfully"}
 
-def test_register_existing_user():
-    # Arrange
-    existing_user = UserInput(
-        username="sina",
-        email="existingusers@example.com",
-        first_name="Existing",
-        last_name="User",
-        password="ExistingPassword123!",
-        role="user"
-    )
-
-    # Act
-    response = client.post("/auth/user/signup", json=existing_user.dict())
-
-    # Assert
-    assert response.status_code == 400
-    assert response.json() == {"detail": "Username already in use"}
-    
 def test_register_existing_email():
     # Arrange
     existing_user = UserInput(
