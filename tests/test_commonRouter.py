@@ -47,7 +47,7 @@ def test_get_category_consecutive_slashes():
 def test_add_category_consecutive_slashes():
     jwt_token = test_login_valid_user()
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    response = client.post("/common/category", params={"category": "sport//test_sport"}, headers=headers)
+    response = client.post("/common/category", params={"category": "sports//test_sport"}, headers=headers)
     assert response.status_code == 400
     assert response.json() == {"detail": "Invalid category path"}
 
@@ -55,7 +55,7 @@ def test_add_category_consecutive_slashes():
 def test_delete_category_consecutive_slashes():
     jwt_token = test_login_valid_user()
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    response = client.delete("/common/category", params={"category": "sport//test_sport"}, headers=headers)
+    response = client.delete("/common/category", params={"category": "sports//test_sport"}, headers=headers)
     assert response.status_code == 400
     assert response.json() == {"detail": "Invalid category path"}
 
@@ -108,12 +108,12 @@ def test_get_category_success_2ndLevel_sub_category():
     headers = {"Authorization": f"Bearer {jwt_token}"}
 
     # Act
-    response = client.get("/common/category", params={"category": "sport/soccer"}, headers=headers)
+    response = client.get("/common/category", params={"category": "sports/Football"}, headers=headers)
 
     # Assert
     assert response.status_code == 200
     assert "category" in response.json()
-    assert response.json()["category"]["name"] == "soccer"
+    assert response.json()["category"]["name"] == "Football"
 
 def test_get_category_failure_one_category():
     # Login and get JWT token
@@ -138,7 +138,7 @@ def test_get_category_failure_2ndLevel_category():
     headers = {"Authorization": f"Bearer {jwt_token}"}
 
     # Act
-    response = client.get("/common/category", params={"category": "sport/non-existent-category"}, headers=headers)
+    response = client.get("/common/category", params={"category": "sports/non-existent-category"}, headers=headers)
 
     # Assert
     assert response.status_code == 404  # Assuming your API returns 404 for not found
@@ -167,19 +167,19 @@ def test_add_category_success():
     headers = {"Authorization": f"Bearer {jwt_token}"}
 
     # Act
-    response = client.get("/common/category", params={"category": "sport/test-sport"}, headers=headers)
+    response = client.get("/common/category", params={"category": "sports/test-sport"}, headers=headers)
     if response.status_code == 200 and "category" in response.json():
-        client.delete("/common/category", params={"category": "sport/test-sport"}, headers=headers)
+        client.delete("/common/category", params={"category": "sports/test-sport"}, headers=headers)
 
     # Act
-    response = client.post("/common/category", params={"category": "sport/test-sport"}, headers=headers)
+    response = client.post("/common/category", params={"category": "sports/test-sport"}, headers=headers)
 
     # Assert
     assert response.status_code == 200
     assert response.json()["message"] == "Category processed successfully"
     assert len(response.json()["category_ids"]) > 0
 
-    client.delete("/common/category", params={"category": "sport/test-sport"}, headers=headers)
+    client.delete("/common/category", params={"category": "sports/test-sport"}, headers=headers)
 
 
 def test_upload_file():

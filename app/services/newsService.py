@@ -1,3 +1,6 @@
+from datetime import timedelta, datetime
+
+from app.models.common import Media
 from app.models.writer import Writer
 from sqlalchemy.orm import Session
 from app.models.news import (
@@ -130,16 +133,48 @@ def get_news_media(db: Session, news_id: int, media_id: int):
     )
 
 
-def get_news_by_category(db: Session, category_id: int):
-    # Assuming there's a relationship defined between News and NewsCategory
-    # This will join News with NewsCategory and filter by the provided category_id
-    # Finally, it will return a list of News objects
+def get_news_by_category(db: Session, category_id: int, hours: int = 0):
+    if hours == 0 or hours is None:
+        return (
+            db.query(News)
+            .join(NewsCategory)
+            .filter(NewsCategory.category_id == category_id)
+            .all()
+        )
+
+    twelve_hours_ago = datetime.utcnow() - timedelta(hours=hours)
     return (
         db.query(News)
         .join(NewsCategory)
         .filter(NewsCategory.category_id == category_id)
+        .filter(News.publishedDate >= twelve_hours_ago)
         .all()
     )
+
+
+
+def get_news_for_video(db: Session, category_id: int, hours: int = 12):
+    if hours == 0 or hours is None:
+        return []
+    # Calculate the time for filtering
+    time_threshold = datetime.utcnow() - timedelta(hours=hours)
+
+    # Perform the query
+    result = (
+        db.query(News.title, Media.fileName)
+        .join(NewsCategory, NewsCategory.news_id == News.id)
+        .join(NewsMedia, NewsMedia.news_id == News.id)
+        .join(Media, NewsMedia.media_id == Media.id)
+        .filter(NewsCategory.category_id == category_id)
+        .filter(News.publishedDate >= time_threshold)
+        .all()
+    )
+
+    # Format the results as a list of tuples (news title, media URL)
+    news_with_media = [{"title": newsTitle, "url": f"{newsUrl}"} for newsTitle, newsUrl in result]
+
+    return news_with_media
+
 
 
 def get_news_by_keyword(db: Session, keyword_id: int):
