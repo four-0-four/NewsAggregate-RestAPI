@@ -13,6 +13,8 @@ from starlette import status
 from os import getenv
 import random
 import string
+from fastapi import HTTPException, Request, Response
+
 
 SECRET_KEY = getenv("SECRET_KEY", "your-default-secret-key")
 ALGORITHM = "HS256"
