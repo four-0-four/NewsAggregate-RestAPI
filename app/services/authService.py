@@ -13,6 +13,12 @@ from starlette import status
 from os import getenv
 import random
 import string
+from fastapi import HTTPException, Request, Response
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 SECRET_KEY = getenv("SECRET_KEY", "your-default-secret-key")
 ALGORITHM = "HS256"
@@ -86,38 +92,48 @@ def login_user(
     request: Request,
     response: Response,
     db: db_dependency,
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    form_data: OAuth2PasswordRequestForm,
 ):
-    # Try to authenticate using form_data.username as username
-    user = authenticate_user(db, form_data.username, form_data.password)
-    if not user:
-        # If authentication failed, try to authenticate using form_data.username as email
-        user = authenticate_user(
-            db, form_data.username, form_data.password, is_email=True
-        )
+    try:
+        logger.info(f"Attempting to login user: {form_data.username}")
+
+        # Try to authenticate using form_data.username as username
+        user = authenticate_user(db, form_data.username, form_data.password)
         if not user:
+            logger.warning(f"Failed to authenticate with username. Trying email for user: {form_data.username}")
+            # If authentication failed, try to authenticate using form_data.username as email
+            user = authenticate_user(
+                db, form_data.username, form_data.password, is_email=True
+            )
+            if not user:
+                logger.error(f"Failed to authenticate with email for user: {form_data.username}")
+                raise HTTPException(
+                    status_code=401, detail="Incorrect username/email or password"
+                )
+
+        if not user.is_active:
+            logger.error(f"User account is not active: {user.username}")
             raise HTTPException(
-                status_code=401, detail="Incorrect username/email or password"
+                status_code=403,
+                detail="Please click on the activation link in your email to activate your account",
             )
 
-    # Check if the user is active
-    if not user.is_active:
-        raise HTTPException(
-            status_code=403,
-            detail="Please click on the activation link in your email to activate your account",
-        )
+        access_data = {
+            "sub": user.username,
+            "id": user.id,
+            "role": "user",
+            "user": user_to_json(user),
+        }
+        access_token = create_access_token(access_data)
+        refresh_token = create_refresh_token(access_data)
 
-    access_data = {
-        "sub": user.username,
-        "id": user.id,
-        "role": "user",
-        "user": user_to_json(user),
-    }
-    access_token = create_access_token(access_data)
-    refresh_token = create_refresh_token(access_data)
+        response.set_cookie(key="refresh_token", value=refresh_token, httponly=True)
+        logger.info(f"User logged in successfully: {user.username}")
+        return {"access_token": access_token, "token_type": "bearer"}
 
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True)
-    return {"access_token": access_token, "token_type": "bearer"}
+    except Exception as e:
+        logger.exception("An error occurred during the login process.")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 def get_refresh_token(
