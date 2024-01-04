@@ -46,17 +46,23 @@ def generate_random_username(length=8):
     return ''.join(random.choice(letters) for i in range(length))
 
 def register_user(request: Request, response: Response, user: UserInput, db: db_dependency):
+    # Password Confirmation Check
+    if user.password != user.confirmPassword:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+
     # Check if a user with the same email already exists
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already in use")
 
     # Check if username is provided, if not, generate a random one
-    if not user.username or db.query(User).filter(User.username == user.username).first():
+    if not user.username:
         user.username = generate_random_username()
         # Ensure the generated username is also unique
         while db.query(User).filter(User.username == user.username).first():
             user.username = generate_random_username()
+    elif db.query(User).filter(User.username == user.username).first():
+        raise HTTPException(status_code=400, detail="Username already in use")
 
     new_user = add_user_to_db(user, db)
 
