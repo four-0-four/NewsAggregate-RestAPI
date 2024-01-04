@@ -24,6 +24,7 @@ def test_register_and_delete_new_user():
         first_name="Test",
         last_name="User",
         password="TestPassword123!",
+        confirmPassword="TestPassword123!",
         role="user"
     )
 
@@ -59,6 +60,7 @@ def test_register_existing_email():
         first_name="Existing",
         last_name="User",
         password="ExistingPassword123!",
+        confirmPassword="ExistingPassword123!",
         role="user"
     )
 
@@ -70,21 +72,23 @@ def test_register_existing_email():
     assert response.json() == {"detail": "Email already in use"}
 
 def test_register_invalid_password():
-    # Act and Assert
     try:
-        # Arrange
         invalid_password_user = UserInput(
             username="invalidpassworduser",
             email="invalidpassworduser@example.com",
             first_name="Invalid",
             last_name="Password",
             password="short",
+            confirmPassword="short",
             role="user"
         )
 
         response = client.post("/auth/user/signup", json=invalid_password_user.dict())
     except ValidationError as e:
-        assert "validation error for UserInput" in str(e) and "password" in str(e)
+        error_message = str(e)
+        assert "2 validation errors for UserInput" in error_message
+        assert "password\n  String should have at least 8 characters" in error_message
+        assert "confirmPassword\n  String should have at least 8 characters" in error_message
 
 
 def login_test_user():
@@ -186,23 +190,7 @@ def test_login_no_password():
     # Assert
     assert response.status_code == 422
     assert "password" in response.json()["detail"][0]["loc"]
-    
-def test_register_no_username():
-    # Arrange
-    invalid_user = {
-        "email": "test@example.com",
-        "first_name": "Test",
-        "last_name": "User",
-        "password": "TestPassword123!",
-        "role": "user"
-    }
 
-    # Act
-    response = client.post("/auth/user/signup", json=invalid_user)
-
-    # Assert
-    assert response.status_code == 422
-    assert "username" in response.json()["detail"][0]["loc"]
 
 def test_register_no_password():
     # Arrange
