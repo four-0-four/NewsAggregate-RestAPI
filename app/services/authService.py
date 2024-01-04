@@ -11,6 +11,8 @@ from app.models.user import DeleteUserInput, User, UserInput
 from app.config.dependencies import bcrypt_context, db_dependency, oauth2_bearer
 from starlette import status
 from os import getenv
+import random
+import string
 
 SECRET_KEY = getenv("SECRET_KEY", "your-default-secret-key")
 ALGORITHM = "HS256"
@@ -38,17 +40,23 @@ def delete_user_func(
     return {"detail": "User deleted successfully"}
 
 
-def register_user(
-    request: Request, response: Response, user: UserInput, db: db_dependency
-):
+def generate_random_username(length=8):
+    """Generate a random username."""
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
+
+def register_user(request: Request, response: Response, user: UserInput, db: db_dependency):
     # Check if a user with the same email already exists
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already in use")
 
-    # Check if username is provided if the username is in use
-    if user.username and db.query(User).filter(User.username == user.username).first():
-        raise HTTPException(status_code=400, detail="Username already in use")
+    # Check if username is provided, if not, generate a random one
+    if not user.username or db.query(User).filter(User.username == user.username).first():
+        user.username = generate_random_username()
+        # Ensure the generated username is also unique
+        while db.query(User).filter(User.username == user.username).first():
+            user.username = generate_random_username()
 
     new_user = add_user_to_db(user, db)
 
