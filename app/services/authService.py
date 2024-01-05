@@ -84,6 +84,32 @@ def register_user(request: Request, response: Response, user: UserInput, db: db_
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+def get_loggedin_user(request: Request, db: db_dependency):
+    # Extract the token from the request headers
+    token = request.headers.get("Authorization")
+    if not token:
+        raise HTTPException(status_code=401, detail="No access token provided")
+
+    # Remove the 'Bearer ' prefix if present
+    if token.startswith("Bearer "):
+        token = token[7:]
+
+    try:
+        # Decode the token
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: int = payload.get("id")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+
+        # Retrieve the user from the database
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return user_to_json(user)
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
 def login_user(
     request: Request,
     response: Response,
