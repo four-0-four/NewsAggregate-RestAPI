@@ -9,7 +9,7 @@ from app.services.authService import (
     get_refresh_token,
     register_user,
     delete_user_func,
-    login_user,
+    login_user, get_current_user, get_loggedin_user,
 )
 from app.models.user import UserInput, User, DeleteUserInput
 from app.config.dependencies import get_db, oauth2_bearer
@@ -38,6 +38,12 @@ async def delete_user(
 ):
     return delete_user_func(request, response, db, username)
 
+
+@router.get("/user")
+async def get_user(
+    request: Request, response: Response, db: Session = Depends(get_db)
+):
+    return get_loggedin_user(request, db)
 
 @router.post("/user/login")
 async def login_for_access_token(

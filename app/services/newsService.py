@@ -1,6 +1,8 @@
 from datetime import timedelta, datetime
 
-from app.models.common import Media
+from sqlalchemy import func
+
+from app.models.common import Media, Keyword
 from app.models.writer import Writer
 from sqlalchemy.orm import Session
 from app.models.news import (
@@ -161,17 +163,27 @@ def get_news_for_video(db: Session, category_id: int, hours: int = 12):
 
     # Perform the query
     result = (
-        db.query(News.title, Media.fileName)
+        db.query(
+            News.title,
+            Media.fileName,
+            func.group_concat(Keyword.name).label('keywords')
+        )
         .join(NewsCategory, NewsCategory.news_id == News.id)
         .join(NewsMedia, NewsMedia.news_id == News.id)
         .join(Media, NewsMedia.media_id == Media.id)
+        .join(NewsKeywords, NewsKeywords.news_id == News.id)
+        .join(Keyword, NewsKeywords.keyword_id == Keyword.id)
         .filter(NewsCategory.category_id == category_id)
         .filter(News.publishedDate >= time_threshold)
+        .group_by(News.id, Media.fileName)
         .all()
     )
 
-    # Format the results as a list of tuples (news title, media URL)
-    news_with_media = [{"title": newsTitle, "url": f"{newsUrl}"} for newsTitle, newsUrl in result]
+    # Format the results as a list of dictionaries
+    news_with_media = [
+        {"title": title, "url": url, "keywords": keywords.split(',')}
+        for title, url, keywords in result
+    ]
 
     return news_with_media
 
