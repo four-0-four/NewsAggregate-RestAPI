@@ -1,6 +1,8 @@
 from fastapi import Request, UploadFile, File, Form
 from app.config.dependencies import db_dependency
 from app.models.news import NewsInput, NewsDescription
+from app.services.locationService import find_city_by_name, find_continent_by_country, find_province_by_name, \
+    find_country_by_name, add_news_location
 from app.services.writerService import validate_writer
 from fastapi import HTTPException, Path, APIRouter, Depends
 from slowapi import Limiter
@@ -77,6 +79,45 @@ async def create_news(
             existing_media = add_media_by_url_to_db(db, media_url, news_input.isInternal)
 
         newsCategory = create_news_media(db, news.id, existing_media.id)
+
+
+    # adding news location
+        # Process locations and add to the database
+        for location_name in news_input.locations:  # Assuming locations is a list of strings in NewsInput
+            # Initialize IDs
+            city_id, province_id, country_id, continent_id = None, None, None, None
+
+            # Check if location exists as a city
+            city = find_city_by_name(db, location_name)
+            if city:
+                city_id = city.id
+                province_id = city.province_id
+                country_id = city.country_id
+                # Find the continent for the country
+                continent = find_continent_by_country(db, country_id)
+                continent_id = continent.id if continent else None
+            else:
+                # Check if location exists as a province
+                province = find_province_by_name(db, location_name)
+                if province:
+                    province_id = province.id
+                    country_id = province.country_id
+                    # Find the continent for the country
+                    continent = find_continent_by_country(db, country_id)
+                    continent_id = continent.id if continent else None
+                else:
+                    # Check if location exists as a country
+                    country = find_country_by_name(db, location_name)
+                    if country:
+                        country_id = country.id
+                        # Find the continent for the country
+                        continent = find_continent_by_country(db, country_id)
+                        continent_id = continent.id if continent else None
+
+            # If any location data was found, add it to the NewsLocation table
+            if city_id or province_id or country_id or continent_id:
+                add_news_location(db, news.id, continent_id, country_id, province_id, city_id)
+
 
     # await add_medias_to_news(news.id, news_input.media_files)
     return {"message": "News added successfully."}
