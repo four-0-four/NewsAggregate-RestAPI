@@ -1,6 +1,20 @@
 from sqlalchemy import Column, String, DateTime, Boolean, Integer, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..config.database import Base
+
+
+class Tokens(Base):
+    __tablename__ = "tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    token = Column(String(255), nullable=False)  # Length specified for VARCHAR
+    expiration_date = Column(DateTime(timezone=True), nullable=False)
+    creation_date = Column(DateTime(timezone=True), server_default=func.now())
+    used = Column(Boolean, default=False, nullable=False)
+    invalidated = Column(Boolean, default=False, nullable=False)
+
 
 class Media(Base):
     __tablename__ = "media"

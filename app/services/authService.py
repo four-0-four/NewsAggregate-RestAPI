@@ -1,12 +1,13 @@
 # app/services/auth_service.py
-import datetime
 from typing import Annotated
 from fastapi import HTTPException, Depends, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from jose import JWTError, jwt
-from datetime import timedelta
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+
+from app.models.common import Tokens
 from app.models.user import DeleteUserInput, User, UserInput
 from app.config.dependencies import bcrypt_context, db_dependency, oauth2_bearer
 from starlette import status
@@ -14,7 +15,9 @@ from os import getenv
 import random
 import string
 from fastapi import HTTPException, Request, Response
+from itsdangerous import URLSafeTimedSerializer
 
+from app.email.sendEmail import sendEmail
 
 SECRET_KEY = getenv("SECRET_KEY", "your-default-secret-key")
 ALGORITHM = "HS256"
@@ -22,6 +25,9 @@ ALGORITHM = "HS256"
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ###################################endpoint functions##############################################
+
+FORGET_SECRET_KEY = "your_secret_key"  # Use a strong, unique key
+FORGET_SECURITY_PASSWORD_SALT = "your_security_salt"
 
 
 # delete user
@@ -110,6 +116,7 @@ def get_loggedin_user(request: Request, db: db_dependency):
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+
 def login_user(
     request: Request,
     response: Response,
@@ -148,6 +155,135 @@ def login_user(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+
+
+def generate_password_reset_token(email, db):
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User with given email not found")
+
+    # Invalidate existing tokens that are not yet expired
+    current_time = datetime.utcnow()
+    tokens = db.query(Tokens).filter(
+        Tokens.user_id == user.id,
+        Tokens.expiration_date > current_time,
+        Tokens.used == False
+    ).all()
+
+    for token in tokens:
+        token.invalidated = True
+
+    # Serialize data for new token
+    serializer = URLSafeTimedSerializer(SECRET_KEY)
+    token_string = serializer.dumps(email, salt=FORGET_SECURITY_PASSWORD_SALT)
+
+    # Create new token object
+    expiration_date = current_time + timedelta(seconds=900)  # 15 minutes from now
+    new_token = Tokens(
+        user_id=user.id,
+        token=token_string,
+        expiration_date=expiration_date,
+        used=False,
+        invalidated=False
+    )
+
+    # Add new token to database
+    db.add(new_token)
+    db.commit()
+
+    return token_string
+
+
+def check_token(token_str, db, expiration=3600):
+    # Find the token in the database
+    token = db.query(Tokens).filter(Tokens.token == token_str).first()
+    if not token:
+        raise HTTPException(status_code=404, detail="Token not found")
+
+    # Check if the token is expired
+    if datetime.utcnow() > token.expiration_date:
+        raise HTTPException(status_code=400, detail="Token expired")
+
+    # Check if the token has already been used
+    if token.used or token.invalidated:
+        raise HTTPException(status_code=400, detail="Token has been used or invalidated")
+
+    # Deserialize token to get the email
+    serializer = URLSafeTimedSerializer(SECRET_KEY)
+    try:
+        email = serializer.loads(
+            token_str,
+            salt=FORGET_SECURITY_PASSWORD_SALT,
+            max_age=expiration
+        )
+    except:
+        raise HTTPException(status_code=400, detail="Invalid token")
+
+    # Check if the email matches the token's user
+    user = db.query(User).filter(User.id == token.user_id).first()
+    if not user or user.email != email:
+        raise HTTPException(status_code=400, detail="Email does not match token")
+
+    # Mark the token as used
+    db.commit()
+
+    return True
+
+
+def confirm_token_and_getEmail(token_str, db, expiration=3600):
+    # Find the token in the database
+    token = db.query(Tokens).filter(Tokens.token == token_str).first()
+    if not token:
+        raise HTTPException(status_code=404, detail="Token not found")
+
+    # Check if the token is expired
+    if datetime.utcnow() > token.expiration_date:
+        raise HTTPException(status_code=400, detail="Token expired")
+
+    # Check if the token has already been used
+    if token.used or token.invalidated:
+        raise HTTPException(status_code=400, detail="Token has been used or invalidated")
+
+    # Deserialize token to get the email
+    serializer = URLSafeTimedSerializer(SECRET_KEY)
+    try:
+        email = serializer.loads(
+            token_str,
+            salt=FORGET_SECURITY_PASSWORD_SALT,
+            max_age=expiration
+        )
+    except:
+        raise HTTPException(status_code=400, detail="Invalid token")
+
+    # Check if the email matches the token's user
+    user = db.query(User).filter(User.id == token.user_id).first()
+    if not user or user.email != email:
+        raise HTTPException(status_code=400, detail="Email does not match token")
+
+    # Mark the token as used
+    token.used = True
+    db.commit()
+
+    return email
+
+
+def initiate_password_reset(email: str, db: db_dependency):
+    # Check if a user with the given email exists
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User with given email not found")
+
+    # Generate a password reset token (you need to implement this)
+    reset_token = generate_password_reset_token(email, db)
+
+    # Send an email with the password reset link (implement send_reset_email)
+    reset_link = f"http://localhost:3000/auth/ChangePassword?token={reset_token}"
+    sendEmail("Farabix Support <admin@farabix.com>", user.email, "forgetPassword", reset_link)
+
+    return {"message": "If an account with that email exists, a password reset link has been sent."}
+
+
+
 def get_refresh_token(
     response: Response, db: db_dependency, refresh_token: str = Depends(oauth2_bearer)
 ):
@@ -157,12 +293,52 @@ def get_refresh_token(
         if not user:
             raise HTTPException(status_code=401, detail="Invalid user")
 
+        # Create new access and refresh tokens
         access_data = {"sub": user.username, "id": user.id, "role": "user"}
         new_access_token = create_access_token(access_data)
-        return {"access_token": new_access_token, "token_type": "bearer"}
+        new_refresh_token = create_refresh_token(access_data)
+
+        # Set new refresh token in an HttpOnly cookie
+        response.set_cookie(key="refresh_token", value=new_refresh_token, httponly=True)
+
+        return {
+            "access_token": new_access_token,
+            "token_type": "bearer"
+        }
     except HTTPException as e:
         response.delete_cookie(key="refresh_token")
         raise e
+
+
+def change_password(token_str: str, new_password: str, confirm_password: str, db):
+    # Confirm the token
+    email = confirm_token_and_getEmail(token_str, db)
+
+    # Check if new_password and confirm_password match
+    if new_password != confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+
+    # Retrieve user by email
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Update user's password using bcrypt hashing
+    user.hashed_password = bcrypt_context.hash(new_password)
+    db.commit()
+
+    # Create access and refresh tokens for the user
+    access_data = {
+        "sub": user.username,
+        "id": user.id,
+        "role": "user",
+        "user": user_to_json(user),
+    }
+    access_token = create_access_token(access_data)
+    refresh_token = create_refresh_token(access_data)
+
+    # Return the access token (logging the user in)
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 ################################### helper functions ##############################################
@@ -195,7 +371,7 @@ def authenticate_user(db: Session, username: str, password: str, is_email=False)
 
 def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=15)):
     to_encode = data.copy()
-    expires = datetime.datetime.utcnow() + expires_delta
+    expires = datetime.utcnow() + expires_delta
     to_encode.update({"exp": expires})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt

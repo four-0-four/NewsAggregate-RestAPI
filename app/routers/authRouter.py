@@ -9,9 +9,10 @@ from app.services.authService import (
     get_refresh_token,
     register_user,
     delete_user_func,
-    login_user, get_current_user, get_loggedin_user,
+    login_user, get_current_user, get_loggedin_user, initiate_password_reset, change_password,
+    check_token,
 )
-from app.models.user import UserInput, User, DeleteUserInput
+from app.models.user import UserInput, User, DeleteUserInput, ChangePasswordInput
 from app.config.dependencies import get_db, oauth2_bearer
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
@@ -53,6 +54,28 @@ async def login_for_access_token(
     db: Session = Depends(get_db),
 ):
     return login_user(request, response, db, form_data)
+
+
+@router.post("/user/forget-password")
+async def forget_password(request: Request, response: Response, db: Session = Depends(get_db)):
+    email = await request.json()
+    return initiate_password_reset(email['email'], db)
+
+
+@router.post("/user/confirm-reset")
+async def forget_password(request: Request, response: Response, db: Session = Depends(get_db)):
+    token = await request.json()
+    return check_token(token['token'], db)
+
+
+@router.post("/user/change-password")
+async def forget_password(request: Request, response: Response, newInfo: ChangePasswordInput, db: Session = Depends(get_db)):
+    return change_password(
+        newInfo.token,
+        newInfo.newPassword,
+        newInfo.confirmPassword,
+        db
+    )
 
 
 @router.post("/refresh/")

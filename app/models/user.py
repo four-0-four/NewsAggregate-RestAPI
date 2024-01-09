@@ -75,6 +75,37 @@ class UserInput(BaseModel):
                 "password": "Password123!"
             }
         }
+
+
+class ChangePasswordInput(BaseModel):
+    token: str = Field(min_length=2, max_length=100)
+    newPassword: str = Field(min_length=8, max_length=300)
+    confirmPassword: str = Field(min_length=8, max_length=300)
+
+    @field_validator('newPassword')
+    def validate_password_strength(cls, value: str):
+        if len(value) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r"[0-9!@#$%^&*(),.?\":{}|<>]", value):
+            raise ValueError('Password must contain at least one number or special character')
+        return value
+
+    @field_validator('confirmPassword')
+    def validate_password_strength(cls, value: str):
+        if len(value) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r"[0-9!@#$%^&*(),.?\":{}|<>]", value):
+            raise ValueError('Password must contain at least one number or special character')
+        return value
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "token": "dummy",
+                "newPassword": "Password123!",
+                "confirmPassword": "Password123!"
+            }
+        }
         
 class DeleteUserInput(BaseModel):
     username: str = Field(min_length=2, max_length=100)
