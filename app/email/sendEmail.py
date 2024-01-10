@@ -7,7 +7,7 @@ from app.email.emailConfig import emailConfig
 import os
 
 
-def sendEmail(sender, recipient, email_type, reset_url=None):
+def sendEmail(sender, recipient, email_type, url=None):
 
     # SMTP server credentials
     username = 'farabix.com'
@@ -23,8 +23,8 @@ def sendEmail(sender, recipient, email_type, reset_url=None):
 
     with open(email_content['html_file'], 'r') as f:
         html_content = f.read()
-        if reset_url:
-            html_content = html_content.format(reset_url=reset_url)
+        if url:
+            html_content = html_content.format(url=url)
 
     html_message = MIMEText(html_content, 'html')
     msg.attach(html_message)

@@ -53,6 +53,7 @@ def generate_random_username(length=8):
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(length))
 
+
 def register_user(request: Request, response: Response, user: UserInput, db: db_dependency):
     # Password Confirmation Check
     if user.password != user.confirmPassword:
@@ -61,7 +62,17 @@ def register_user(request: Request, response: Response, user: UserInput, db: db_
     # Check if a user with the same email already exists
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="Email already in use")
+        if not existing_user.is_active:  # Check if the existing user is not active
+            # Generate a new activation token (implement this function)
+            token = generate_token(existing_user.email, db)
+
+            # Send an email with the activation link (implement send_activation_email)
+            activation_link = f"http://localhost:3000/auth/ActivateAccount?token={token}"
+            sendEmail("Farabix Support <admin@farabix.com>", user.email, "Activate Your Account", activation_link)
+
+            raise HTTPException(status_code=400, detail="User already exists but is not verified. An activation email has been sent. Please check your email.")
+        else:
+            raise HTTPException(status_code=400, detail="Email already in use and verified")
 
     # Check if username is provided, if not, generate a random one
     if not user.username:
@@ -74,21 +85,14 @@ def register_user(request: Request, response: Response, user: UserInput, db: db_
 
     new_user = add_user_to_db(user, db)
 
-    # Create tokens after successful registration
-    access_data = {
-        "sub": new_user.username,
-        "id": new_user.id,
-        "role": "user",
-        "user": user_to_json(new_user),
-    }
-    access_token = create_access_token(access_data)
-    refresh_token = create_refresh_token(access_data)
+    # Generate a password reset token (you need to implement this)
+    token = generate_token(new_user.email, db)
 
-    # Set refresh token in an HttpOnly cookie
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True)
+    # Send an email with the password reset link (implement send_reset_email)
+    reset_link = f"http://localhost:3000/auth/ActivateAccount?token={token}"
+    sendEmail("Farabix Support <admin@farabix.com>", user.email, "activateAccount", reset_link)
 
-    return {"access_token": access_token, "token_type": "bearer"}
-
+    return {"message": "An Email sent to your email address, please check your email to activate your account"}
 
 def get_loggedin_user(request: Request, db: db_dependency):
     # Extract the token from the request headers
@@ -157,7 +161,7 @@ def login_user(
 
 
 
-def generate_password_reset_token(email, db):
+def generate_token(email, db):
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User with given email not found")
@@ -194,7 +198,7 @@ def generate_password_reset_token(email, db):
     return token_string
 
 
-def check_token(token_str, db, expiration=3600):
+def check_token(token_str, db, activateIt=False, expiration=3600):
     # Find the token in the database
     token = db.query(Tokens).filter(Tokens.token == token_str).first()
     if not token:
@@ -225,46 +229,23 @@ def check_token(token_str, db, expiration=3600):
         raise HTTPException(status_code=400, detail="Email does not match token")
 
     # Mark the token as used
+    if activateIt:
+        token.used = True
     db.commit()
 
-    return True
+    return user
+
+
+def confirm_token_and_activate_account(token_str, db):
+    user = check_token(token_str, db, True)
+    user.is_active = True
+    db.commit()
+    return {"message": "Account activated successfully"}
 
 
 def confirm_token_and_getEmail(token_str, db, expiration=3600):
-    # Find the token in the database
-    token = db.query(Tokens).filter(Tokens.token == token_str).first()
-    if not token:
-        raise HTTPException(status_code=404, detail="Token not found")
-
-    # Check if the token is expired
-    if datetime.utcnow() > token.expiration_date:
-        raise HTTPException(status_code=400, detail="Token expired")
-
-    # Check if the token has already been used
-    if token.used or token.invalidated:
-        raise HTTPException(status_code=400, detail="Token has been used or invalidated")
-
-    # Deserialize token to get the email
-    serializer = URLSafeTimedSerializer(SECRET_KEY)
-    try:
-        email = serializer.loads(
-            token_str,
-            salt=FORGET_SECURITY_PASSWORD_SALT,
-            max_age=expiration
-        )
-    except:
-        raise HTTPException(status_code=400, detail="Invalid token")
-
-    # Check if the email matches the token's user
-    user = db.query(User).filter(User.id == token.user_id).first()
-    if not user or user.email != email:
-        raise HTTPException(status_code=400, detail="Email does not match token")
-
-    # Mark the token as used
-    token.used = True
-    db.commit()
-
-    return email
+    user = check_token(token_str, db, True, expiration=expiration)
+    return user.email
 
 
 def initiate_password_reset(email: str, db: db_dependency):
@@ -274,7 +255,7 @@ def initiate_password_reset(email: str, db: db_dependency):
         raise HTTPException(status_code=404, detail="User with given email not found")
 
     # Generate a password reset token (you need to implement this)
-    reset_token = generate_password_reset_token(email, db)
+    reset_token = generate_token(email, db)
 
     # Send an email with the password reset link (implement send_reset_email)
     reset_link = f"http://localhost:3000/auth/ChangePassword?token={reset_token}"

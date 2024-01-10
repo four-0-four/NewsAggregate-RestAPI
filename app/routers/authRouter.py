@@ -10,7 +10,7 @@ from app.services.authService import (
     register_user,
     delete_user_func,
     login_user, get_current_user, get_loggedin_user, initiate_password_reset, change_password,
-    check_token,
+    check_token, confirm_token_and_activate_account,
 )
 from app.models.user import UserInput, User, DeleteUserInput, ChangePasswordInput
 from app.config.dependencies import get_db, oauth2_bearer
@@ -32,6 +32,11 @@ async def create_user(
 ):
     return register_user(request, response, user, db)
 
+
+@router.post("/user/confirm-registration")
+async def confirm_registration(request: Request, response: Response, db: Session = Depends(get_db)):
+    token = await request.json()
+    return confirm_token_and_activate_account(token['token'], db)
 
 @router.delete("/user/delete/{username}")
 async def delete_user(
