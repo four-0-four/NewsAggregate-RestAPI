@@ -13,7 +13,7 @@ from app.services.commonService import get_keyword, add_keyword, get_category, a
     get_media_by_url, add_news_categories_db, get_category_by_id
 from app.services.newsService import add_news_db, create_news_keyword, get_news_by_title, delete_news_by_title, \
     get_news_category, create_news_category, create_news_media, get_news_by_category, get_news_by_keyword, \
-    get_news_for_video
+    get_news_for_video, get_news_affiliates, create_news_affiliates, get_news_corporations, get_news_by_user_following
 from app.services.newsAnalyzer import extract_keywords
 
 router = APIRouter(prefix="/news", tags=["news"])
@@ -81,6 +81,16 @@ async def create_news(
         newsCategory = create_news_media(db, news.id, existing_media.id)
 
 
+    # addding news affiliat
+    corporation_exists = get_news_corporations(db, news_input.newsCorporationID)
+    if corporation_exists:
+        existing_news_affiliates = get_news_affiliates(db, news.id, news_input.newsCorporationID, news_input.externalLink)
+        if not existing_news_affiliates:
+            existing_news_affiliates = create_news_affiliates(db, news.id, news_input.newsCorporationID, news_input.externalLink)
+    else:
+        raise HTTPException(status_code=404, detail="News Corporation not found")
+
+
     # adding news location
         # Process locations and add to the database
         for location_name in news_input.locations:  # Assuming locations is a list of strings in NewsInput
@@ -135,6 +145,17 @@ async def get_news(
         raise HTTPException(status_code=409, detail="News does not exists")
 
     return {"message": "News found successfully.", "news_id": existing_news.id}
+
+
+@router.get("/user/get")
+async def get_news(
+        request: Request,
+        user: user_dependency,
+        db: db_dependency):
+    # check if title is unique
+    all_interested_news = get_news_by_user_following(db, user["id"])
+
+    return all_interested_news
 
 
 @router.get("/getByCategory/past12hr")

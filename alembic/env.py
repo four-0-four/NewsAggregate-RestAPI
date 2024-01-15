@@ -8,7 +8,7 @@ from app.config.database import Base
 from app.models.common import Media, NewsCorporations, Language, Keyword, Category
 from app.models.location import Continent, Country, Province, City
 from app.models.news import News, NewsLocation, NewsCategory, NewsKeywords, NewsAffiliates, NewsMedia
-from app.models.user import User, Following
+from app.models.user import User, UserWriterFollowing, UserKeywordFollowing, UserCategoryFollowing
 from app.models.writer import Writer, WriterAffiliate
 
 # this is the Alembic Config object, which provides

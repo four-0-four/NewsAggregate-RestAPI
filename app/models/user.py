@@ -23,13 +23,30 @@ class User(Base):
     media_profile_picture = relationship('Media', foreign_keys=[profile_picture_id])
 
 
-class Following(Base):
-    __tablename__ = "following"
+class UserWriterFollowing(Base):
+    __tablename__ = "user_writer_following"
 
-    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)  # Updated foreign key reference
-    writer_id = Column(Integer, ForeignKey('writers.id'), primary_key=True)
-    keyword_id = Column(Integer, ForeignKey('keywords.id'), primary_key=True)
-    category_id = Column(Integer, ForeignKey('categories.id'), primary_key=True)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    writer_id = Column(Integer, ForeignKey('writers.id'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class UserKeywordFollowing(Base):
+    __tablename__ = "user_keyword_following"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    keyword_id = Column(Integer, ForeignKey('keywords.id'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class UserCategoryFollowing(Base):
+    __tablename__ = "user_category_following"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    category_id = Column(Integer, ForeignKey('categories.id'))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

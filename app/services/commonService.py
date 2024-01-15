@@ -82,6 +82,10 @@ def add_keyword(db: Session, keyword: str):
     db.commit()
     return new_keyword
 
+def get_keyword_byID(db: Session, keyword_id: int):
+    keyword = db.query(Keyword).filter(Keyword.id == keyword_id).first()
+    return keyword
+
 
 def get_category_by_id(db: Session, category_id:int):
     existing_category = db.query(Category).filter(

@@ -22,6 +22,8 @@ class News(Base):
     language_id = Column(Integer, ForeignKey('languages.id'), nullable=False)
     isInternal = Column(Boolean, nullable=False, default=True)  # Default to True
     isPublished = Column(Boolean, nullable=False, default=False)  # Default to False
+    createdAt = Column(DateTime(timezone=True), server_default=func.now())
+    updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Define a relationship with NewsLocation
     locations = relationship("NewsLocation", back_populates="news")
@@ -144,6 +146,8 @@ class NewsInput(BaseModel):
     locations: List[str]
     categories: List[str]
     media_urls: Optional[List[str]]
+    newsCorporationID: int
+    externalLink: str
 
     class Config:
         from_attributes = True

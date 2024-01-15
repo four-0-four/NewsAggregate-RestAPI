@@ -2,7 +2,8 @@ from datetime import timedelta, datetime
 
 from sqlalchemy import func
 
-from app.models.common import Media, Keyword
+from app.models.common import Media, Keyword, NewsCorporations
+from app.models.user import UserCategoryFollowing, UserKeywordFollowing
 from app.models.writer import Writer
 from sqlalchemy.orm import Session
 from app.models.news import (
@@ -199,3 +200,59 @@ def get_news_by_keyword(db: Session, keyword_id: int):
         .filter(NewsKeywords.keyword_id == keyword_id)
         .all()
     )
+
+
+#################################### NewsAffiliates ####################################
+
+
+def get_news_affiliates(db: Session, news_id: int, news_corporation_id: int, external_link: str):
+    return (
+        db.query(NewsAffiliates)
+        .filter(NewsAffiliates.news_id == news_id, NewsAffiliates.newsCorporation_id == news_corporation_id, NewsAffiliates.externalLink == external_link)
+        .first()
+    )
+
+
+def create_news_affiliates(db: Session, news_id: int, corporation_id: int, external_link: str):
+    news_affiliate = get_news_affiliates(db, news_id, corporation_id, external_link)
+    if not news_affiliate:
+        news_affiliate = NewsAffiliates(news_id=news_id, newsCorporation_id=corporation_id, externalLink=external_link)
+        db.add(news_affiliate)
+        db.commit()
+        db.refresh(news_affiliate)
+    return news_affiliate
+
+
+def get_news_corporations(db: Session, corporation_id:int):
+    return db.query(NewsCorporations).filter(NewsCorporations.id == corporation_id).first()
+
+def get_news_by_user_following(db: Session, user_id: int, hours_ago: int = 24):
+    def filter_by_time(query, hours_ago):
+        if hours_ago > 0:
+            datetime_hours_ago = datetime.utcnow() - timedelta(hours=hours_ago)
+            return query.filter(News.publishedDate >= datetime_hours_ago)
+        return query
+
+    def get_interested_news(join_model, join_condition, following_model, following_condition):
+        query = (
+            db.query(News)
+            .join(join_model, join_condition)
+            .join(following_model, following_condition)
+            .filter(following_model.user_id == user_id)
+        )
+        query = filter_by_time(query, hours_ago)
+        return query.order_by(News.createdAt.desc()).all()
+
+    # Assuming the relationships and foreign keys are set up as described in your ORM models
+    interested_news_by_category = get_interested_news(
+        NewsCategory, NewsCategory.news_id == News.id,
+        UserCategoryFollowing, UserCategoryFollowing.category_id == NewsCategory.category_id
+    )
+
+    interested_news_by_keyword = get_interested_news(
+        NewsKeywords, NewsKeywords.news_id == News.id,
+        UserKeywordFollowing, UserKeywordFollowing.keyword_id == NewsKeywords.keyword_id
+    )
+
+    all_interested_news = interested_news_by_category + interested_news_by_keyword
+    return all_interested_news
