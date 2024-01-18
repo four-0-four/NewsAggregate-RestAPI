@@ -174,7 +174,11 @@ def delete_news_by_title(db: Session, news_title: str):
         # Delete associated NewsMedia
         db.query(NewsMedia).filter(NewsMedia.news_id == news.id).delete()
 
-        # TODO: Delete associated NewsAffiliates
+        # Delete associated NewsAffiliates
+        db.query(NewsAffiliates).filter(NewsAffiliates.news_id == news.id).delete()
+
+        # Delete associated NewsLocations
+        db.query(NewsLocation).filter(NewsLocation.news_id == news.id).delete()
 
         # Now delete the news item itself
         db.delete(news)

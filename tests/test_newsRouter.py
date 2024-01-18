@@ -35,8 +35,12 @@ def test_add_news_empty_title():
         isInternal=False,
         isPublished=True,
         keywords=["test", "news", "pytest"],
+        locations=["Sample Location"],  # Add a valid location
+        newsCorporationID=123,  # Add a valid news corporation ID
+        externalLink="https://example.com",  # Add a valid external link
         media_urls=[
-            "https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"],
+            "https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"
+        ],
         categories=["sample"],
         writer_id=None
     )
@@ -68,8 +72,12 @@ def test_add_news_empty_content():
         isInternal=False,
         isPublished=True,
         keywords=["test", "news", "pytest"],
+        locations=["Sample Location"],  # Add a valid location
+        newsCorporationID=123,  # Add a valid news corporation ID
+        externalLink="https://example.com",  # Add a valid external link
         media_urls=[
-            "https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"],
+            "https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"
+        ],
         categories=["sample"],
         writer_id=None
     )
@@ -105,7 +113,12 @@ def test_add_news_db():
         isInternal=False,
         isPublished=True,
         keywords=["test", "news", "pytest"],
-        media_urls=["https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"],
+        locations=["Sample Location"],  # Add a valid location
+        newsCorporationID=5,  # Add a valid news corporation ID
+        externalLink="https://example.com",  # Add a valid external link
+        media_urls=[
+            "https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"
+        ],
         categories=["sample"],
         writer_id=None
     )
@@ -140,8 +153,12 @@ def test_add_news_empty_keywords():
         isInternal=False,
         isPublished=True,
         keywords=[],
+        locations=["Sample Location"],  # Add a valid location
+        newsCorporationID=123,  # Add a valid news corporation ID
+        externalLink="https://example.com",  # Add a valid external link
         media_urls=[
-            "https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"],
+            "https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"
+        ],
         categories=["sample"],
         writer_id=None
     )
@@ -173,8 +190,12 @@ def test_add_news_empty_categories():
         isInternal=False,
         isPublished=True,
         keywords=["sample"],
+        locations=["Sample Location"],  # Add a valid location
+        newsCorporationID=123,  # Add a valid news corporation ID
+        externalLink="https://example.com",  # Add a valid external link
         media_urls=[
-            "https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"],
+            "https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"
+        ],
         categories=[],
         writer_id=None
     )
@@ -207,6 +228,9 @@ def test_add_news_empty_media_urls():
         isInternal=False,
         isPublished=True,
         keywords=["sample"],
+        locations=["Sample Location"],  # Add a valid location
+        newsCorporationID=123,  # Add a valid news corporation ID
+        externalLink="https://example.com",  # Add a valid external link
         media_urls=[],
         categories=["sample"],
         writer_id=None
@@ -255,7 +279,6 @@ def tst_delete_news_db():
     # Act
     response = client.delete(f"/news/delete?news_title={news_title}", headers=headers)
 
-    # Assert
     # Assert
     assert response.status_code == 200
     response_data = response.json()
