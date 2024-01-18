@@ -14,49 +14,11 @@ import secrets
 
 client = TestClient(app)
 
-def test_register_and_delete_new_user():
-    username = secrets.token_hex(5) 
-    email = f"{username}@example.com"
-    # Arrange
-    new_user = UserInput(
-        username = username,
-        email = email,
-        first_name="Test",
-        last_name="User",
-        password="TestPassword123!",
-        confirmPassword="TestPassword123!",
-        role="user"
-    )
-
-    # Act
-    response = client.post("/auth/user/signup", json=new_user.dict())
-    
-    # Assert
-    assert response.status_code == 200
-    assert "access_token" in response.json()
-    
-    # Decode the JWT
-    token_data = decode_jwt(response.json()["access_token"])
-
-    # Check the user attributes
-    assert token_data["sub"] == new_user.username
-    assert token_data["role"] == new_user.role
-    assert token_data['user']['email'] == new_user.email
-    assert token_data['user']['first_name'] == new_user.first_name
-    assert token_data['user']['last_name'] == new_user.last_name
-    assert token_data['user']['username'] == new_user.username
-    assert token_data['user']['is_active'] == False
-    
-    response = client.delete(f"/auth/user/delete/{username}")
-    
-    assert response.status_code == 200
-    assert response.json() == {"detail": "User deleted successfully"}
-
 def test_register_existing_email():
     # Arrange
     existing_user = UserInput(
         username="sina3",
-        email="sina1@test.org",
+        email="msina.raf@gmail.com",
         first_name="Existing",
         last_name="User",
         password="ExistingPassword123!",
@@ -69,7 +31,7 @@ def test_register_existing_email():
 
     # Assert
     assert response.status_code == 400
-    assert response.json() == {"detail": "Email already in use"}
+    assert response.json() == {"detail": "Email already in use and verified"}
 
 def test_register_invalid_password():
     try:

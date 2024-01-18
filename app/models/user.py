@@ -23,13 +23,30 @@ class User(Base):
     media_profile_picture = relationship('Media', foreign_keys=[profile_picture_id])
 
 
-class Following(Base):
-    __tablename__ = "following"
+class UserWriterFollowing(Base):
+    __tablename__ = "user_writer_following"
 
-    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)  # Updated foreign key reference
-    writer_id = Column(Integer, ForeignKey('writers.id'), primary_key=True)
-    keyword_id = Column(Integer, ForeignKey('keywords.id'), primary_key=True)
-    category_id = Column(Integer, ForeignKey('categories.id'), primary_key=True)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    writer_id = Column(Integer, ForeignKey('writers.id'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class UserKeywordFollowing(Base):
+    __tablename__ = "user_keyword_following"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    keyword_id = Column(Integer, ForeignKey('keywords.id'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class UserCategoryFollowing(Base):
+    __tablename__ = "user_category_following"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    category_id = Column(Integer, ForeignKey('categories.id'))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -75,6 +92,37 @@ class UserInput(BaseModel):
                 "password": "Password123!"
             }
         }
+
+
+class ChangePasswordInput(BaseModel):
+    token: str = Field(min_length=2, max_length=100)
+    newPassword: str = Field(min_length=8, max_length=300)
+    confirmPassword: str = Field(min_length=8, max_length=300)
+
+    @field_validator('newPassword')
+    def validate_password_strength(cls, value: str):
+        if len(value) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r"[0-9!@#$%^&*(),.?\":{}|<>]", value):
+            raise ValueError('Password must contain at least one number or special character')
+        return value
+
+    @field_validator('confirmPassword')
+    def validate_password_strength(cls, value: str):
+        if len(value) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r"[0-9!@#$%^&*(),.?\":{}|<>]", value):
+            raise ValueError('Password must contain at least one number or special character')
+        return value
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "token": "dummy",
+                "newPassword": "Password123!",
+                "confirmPassword": "Password123!"
+            }
+        }
         
 class DeleteUserInput(BaseModel):
     username: str = Field(min_length=2, max_length=100)
@@ -85,4 +133,9 @@ class DeleteUserInput(BaseModel):
             raise ValueError('Username must only contain alphanumeric characters')
         return value
 
-        
+
+class ContactUsInput(BaseModel):
+    full_name: str = Field(min_length=2, max_length=100)
+    email: EmailStr = Field(...)
+    topic: str = Field(min_length=1, max_length=200)
+    message: str = Field(min_length=1, max_length=300)

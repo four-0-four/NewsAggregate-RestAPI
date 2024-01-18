@@ -22,6 +22,8 @@ class News(Base):
     language_id = Column(Integer, ForeignKey('languages.id'), nullable=False)
     isInternal = Column(Boolean, nullable=False, default=True)  # Default to True
     isPublished = Column(Boolean, nullable=False, default=False)  # Default to False
+    createdAt = Column(DateTime(timezone=True), server_default=func.now())
+    updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Define a relationship with NewsLocation
     locations = relationship("NewsLocation", back_populates="news")
@@ -38,21 +40,19 @@ class News(Base):
 
 # Define the NewsLocation table for tracking news locations
 class NewsLocation(Base):
-    """
-    Table to store the locations associated with news articles.
-    """
     __tablename__ = "newsLocations"
 
-    news_id = Column(Integer, ForeignKey('news.id'), primary_key=True)
-    continent_id = Column(Integer, ForeignKey('continents.id'), primary_key=True)
-    country_id = Column(Integer, ForeignKey('countries.id'), primary_key=True)
-    province_id = Column(Integer, ForeignKey('provinces.id'), primary_key=True)
-    city_id = Column(Integer, ForeignKey('cities.id'), primary_key=True)
+    id = Column(Integer, primary_key=True)  # New auto-increment primary key
+    news_id = Column(Integer, ForeignKey('news.id'))
+    continent_id = Column(Integer, ForeignKey('continents.id'), nullable=True)
+    country_id = Column(Integer, ForeignKey('countries.id'), nullable=True)
+    province_id = Column(Integer, ForeignKey('provinces.id'), nullable=True)
+    city_id = Column(Integer, ForeignKey('cities.id'), nullable=True)
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Define a relationship with News
     news = relationship("News", back_populates="locations")
+
 
 # Define the NewsCategory table for categorizing news articles
 class NewsCategory(Base):
@@ -143,8 +143,11 @@ class NewsInput(BaseModel):
     isPublished: bool = False
     writer_id: Optional[str]  # ID of the writer
     keywords: List[str]  # List of keyword IDs
+    locations: List[str]
     categories: List[str]
     media_urls: Optional[List[str]]
+    newsCorporationID: int
+    externalLink: str
 
     class Config:
         from_attributes = True

@@ -17,7 +17,7 @@ class Country(Base):
     name = Column(String(100))
     code = Column(String(5))
     capital = Column(String(100))
-    phone = Column(String(10))
+    phone = Column(String(20))
     native = Column(String(100))
     currency = Column(String(5))
     continent_id = Column(Integer, ForeignKey('continents.id'))
