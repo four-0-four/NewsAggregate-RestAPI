@@ -235,6 +235,7 @@ def run_getNews_for_one_corporation(corporationName):
         print(f"WARNING: News corporation {corporationName} not found in the database...")
         return
     get_news_for_corporation_and_save(corporation.name, corporation.id)
+    send_cron_job_summary_email()
 
 
 def run_news_cron_job():
@@ -246,6 +247,7 @@ def run_news_cron_job():
         news_corporation = corporation.name
         news_corporation_id = corporation.id
         get_news_for_corporation_and_save(news_corporation, news_corporation_id)
+    send_cron_job_summary_email()
 
 
 
