@@ -2,7 +2,7 @@ from datetime import timedelta, datetime
 
 from sqlalchemy import func
 
-from app.models.common import Media, Keyword, NewsCorporations
+from app.models.common import Media, Keyword, NewsCorporations, Category
 from app.models.user import UserCategoryFollowing, UserKeywordFollowing
 from app.models.writer import Writer
 from sqlalchemy.orm import Session
@@ -17,9 +17,121 @@ from fastapi import APIRouter, Depends, Request, UploadFile
 from typing import List
 from fastapi import HTTPException
 from app.models.news import News, NewsInput
+from app.services.commonService import get_keyword, add_keyword, add_news_categories_db, get_media_by_url, \
+    add_media_by_url_to_db
+from app.services.locationService import find_city_by_name, find_province_by_name, find_continent_by_country, \
+    find_country_by_name, add_news_location
+from app.services.writerService import validate_writer
 
 
 #################################### News ####################################
+
+
+def add_news_from_newsInput(db: Session, news_input: NewsInput):
+    # Validate inputs
+    if not news_input.title or not news_input.content:
+        raise HTTPException(status_code=400, detail="Title and content are required")
+
+    if len(news_input.keywords) == 0:
+        raise HTTPException(status_code=400, detail="Keywords lists cannot be empty")
+
+    if len(news_input.categories) == 0:
+        raise HTTPException(status_code=400, detail="Categories lists cannot be empty")
+
+    if len(news_input.media_urls) == 0:
+        raise HTTPException(status_code=400, detail="Media URLs lists cannot be empty")
+
+    # check if title is unique
+    existing_news = get_news_by_title(db, news_input.title)
+    if existing_news:
+        raise HTTPException(status_code=409, detail="News already exists")
+
+    writer_id = news_input.writer_id
+    if writer_id and not validate_writer(db, writer_id):
+        raise HTTPException(status_code=404, detail="Writer not found")
+
+    # adding the news to the database
+    news = add_news_db(db, news_input)
+
+    # adding keywords to the the database if not exists
+    for keyword in news_input.keywords:
+        # Check if the keyword exists
+        existing_keyword = get_keyword(db, keyword)
+        if not existing_keyword:
+            # Add the keyword if it does not exist
+            existing_keyword = add_keyword(db, keyword)
+
+        # Add the keyword to the newsKeywords table
+        newsKeyword = create_news_keyword(db, news.id, existing_keyword.id)
+
+    # processing the categories and adding them to the database of both news and categories if not exists
+    for category in news_input.categories:
+        add_news_categories_db(db, category, news.id)
+
+
+    # adding media url
+    for media_url in news_input.media_urls:
+        # Check if the keyword exists
+        existing_media = get_media_by_url(db, media_url, news_input.isInternal)
+        if not existing_media:
+            # Add the keyword if it does not exist
+            existing_media = add_media_by_url_to_db(db, media_url, news_input.isInternal)
+
+        newsCategory = create_news_media(db, news.id, existing_media.id)
+
+
+    # addding news affiliat
+    corporation_exists = get_news_corporations(db, news_input.newsCorporationID)
+    if corporation_exists:
+        existing_news_affiliates = get_news_affiliates(db, news.id, news_input.newsCorporationID, news_input.externalLink)
+        if not existing_news_affiliates:
+            existing_news_affiliates = create_news_affiliates(db, news.id, news_input.newsCorporationID, news_input.externalLink)
+    else:
+        raise HTTPException(status_code=404, detail="News Corporation not found")
+
+
+    # adding news location
+        # Process locations and add to the database
+    for location_name in news_input.locations:  # Assuming locations is a list of strings in NewsInput
+        # Initialize IDs
+        city_id, province_id, country_id, continent_id = None, None, None, None
+
+        # Check if location exists as a city
+        city = find_city_by_name(db, location_name)
+        if city:
+            city_id = city.id
+            province_id = city.province_id
+            country_id = city.country_id
+            # Find the continent for the country
+            continent = find_continent_by_country(db, country_id)
+            continent_id = continent.id if continent else None
+        else:
+            # Check if location exists as a province
+            province = find_province_by_name(db, location_name)
+            if province:
+                province_id = province.id
+                country_id = province.country_id
+                # Find the continent for the country
+                continent = find_continent_by_country(db, country_id)
+                continent_id = continent.id if continent else None
+            else:
+                # Check if location exists as a country
+                country = find_country_by_name(db, location_name)
+                if country:
+                    country_id = country.id
+                    # Find the continent for the country
+                    continent = find_continent_by_country(db, country_id)
+                    continent_id = continent.id if continent else None
+
+        # If any location data was found, add it to the NewsLocation table
+        if city_id or province_id or country_id or continent_id:
+            add_news_location(db, news.id, continent_id, country_id, province_id, city_id)
+
+
+    # await add_medias_to_news(news.id, news_input.media_files)
+    return {"message": "News added successfully."}
+
+
 def add_news_db(db: Session, news_input: NewsInput):
     # Create a new News instance from the NewsInput data
     news = News(
@@ -41,6 +153,10 @@ def add_news_db(db: Session, news_input: NewsInput):
 
 def get_news_by_title(db: Session, title: str):
     return db.query(News).filter(News.title == title).first()
+
+
+def get_news_by_id(db: Session, news_id: int):
+    return db.query(News).filter(News.id == news_id).first()
 
 
 # delete news by id
@@ -67,37 +183,6 @@ def delete_news_by_title(db: Session, news_title: str):
 
     return None
 
-
-############################### NewsCategory ###############################
-
-
-def get_news_category(db: Session, news_id: int, category_id: int):
-    return db.query(NewsCategory).filter(NewsCategory.news_id == news_id, NewsCategory.category_id == category_id).first()
-
-
-def create_news_category(db: Session, news_id: int, category_id: int):
-    # Check if the news_category already exists
-    existing_news_category = get_news_category(db, news_id, category_id)
-
-    # If it exists, return the existing entry
-    if existing_news_category:
-        return existing_news_category
-
-    # If it does not exist, create a new instance of NewsCategory
-    new_news_category = NewsCategory(news_id=news_id, category_id=category_id)
-
-    # Add the new instance to the session and commit
-    db.add(new_news_category)
-    db.commit()
-
-    # Refresh to get the data from the database, if necessary
-    db.refresh(new_news_category)
-
-    return new_news_category
-
-
-
-#################################### NewsKeywords ####################################
 
 def create_news_keyword(db: Session, news_id: int, keyword_id: int):
     news_keyword = get_news_keyword(db, news_id, keyword_id)
@@ -136,23 +221,22 @@ def get_news_media(db: Session, news_id: int, media_id: int):
     )
 
 
-def get_news_by_category(db: Session, category_id: int, hours: int = 0):
-    if hours == 0 or hours is None:
-        return (
-            db.query(News)
-            .join(NewsCategory)
-            .filter(NewsCategory.category_id == category_id)
-            .all()
-        )
-
-    twelve_hours_ago = datetime.utcnow() - timedelta(hours=hours)
-    return (
+def get_news_by_category(db: Session, category_id: int, hours: int = 0, limit: int = None):
+    query = (
         db.query(News)
         .join(NewsCategory)
         .filter(NewsCategory.category_id == category_id)
-        .filter(News.publishedDate >= twelve_hours_ago)
-        .all()
     )
+
+    if hours > 0:
+        twelve_hours_ago = datetime.utcnow() - timedelta(hours=hours)
+        query = query.filter(News.publishedDate >= twelve_hours_ago)
+
+    query = query.order_by(News.publishedDate.desc())  # Order by publication date in descending order
+    if limit is not None:
+        return query.limit(limit).all()
+    else:
+        return query.all()
 
 
 
@@ -256,3 +340,88 @@ def get_news_by_user_following(db: Session, user_id: int, hours_ago: int = 24):
 
     all_interested_news = interested_news_by_category + interested_news_by_keyword
     return all_interested_news
+
+
+
+def get_news_information(db: Session, news_id: int):
+    news = db.query(News).filter(News.id == news_id).first()
+    if news:
+        newsCard = {
+            "id": news.id,
+            "title": news.title,
+            "description": news.description,
+            "content": news.content,
+            "publishedDate": news.publishedDate,
+            "language_id": news.language_id,
+            "isInternal": news.isInternal,
+            "isPublished": news.isPublished,
+            "createdAt": news.createdAt,
+            "updatedAt": news.updatedAt,
+            "categories": [],
+            "keywords": [],
+            "media": [],
+            "from": "",
+            "fromImage": ""
+        }
+
+        # Get the categories
+        categories_of_news = db.query(Category).join(
+            NewsCategory, NewsCategory.category_id == Category.id
+        ).filter(NewsCategory.news_id == news.id).all()
+        newsCard["categories"] = [category.name for category in categories_of_news]
+
+        # Get the keywords
+        keywords_of_news = db.query(Keyword).join(
+            NewsKeywords, NewsKeywords.keyword_id == Keyword.id
+        ).filter(NewsKeywords.news_id == news.id).all()
+        newsCard["keywords"] = [keyword.name for keyword in keywords_of_news]
+
+        # Get the media
+        media_of_news = db.query(Media).join(
+            NewsMedia, NewsMedia.media_id == Media.id
+        ).filter(NewsMedia.news_id == news.id).all()
+        newsCard["media"] = [media.fileName for media in media_of_news]
+
+        # Get the affiliates
+        affiliates_of_news = db.query(NewsCorporations.name, NewsCorporations.logo).join(
+            NewsAffiliates, NewsAffiliates.newsCorporation_id == NewsCorporations.id
+        ).filter(NewsAffiliates.news_id == news.id).all()
+        if affiliates_of_news:
+            first_affiliate = affiliates_of_news[0]
+            newsCard["from"] = first_affiliate.name
+            newsCard["fromImage"] = first_affiliate.logo
+
+        return newsCard
+
+    return None
+
+def get_news_for_newsCard(db: Session, listOfNews):
+    newsCards = []
+    for news in listOfNews:
+        newsCards.append(get_news_information(db, news.id))
+
+    return newsCards
+
+
+def get_news_by_category_or_keyword(db: Session, category_id: int = None, keyword_id: int = None, page: int = 1, items_per_page: int = 10):
+    query = db.query(News)
+
+    if category_id and keyword_id:
+        query = query.join(NewsCategory).join(NewsKeywords).filter(
+            (NewsCategory.category_id == category_id) |
+            (NewsKeywords.keyword_id == keyword_id)
+        )
+    elif category_id:
+        query = query.join(NewsCategory).filter(NewsCategory.category_id == category_id)
+    elif keyword_id:
+        query = query.join(NewsKeywords).filter(NewsKeywords.keyword_id == keyword_id)
+
+    query = query.order_by(News.publishedDate.desc())
+
+    # Calculate the offset based on the page number and items per page
+    offset = (page - 1) * items_per_page
+
+    # Apply pagination using the limit and offset
+    query = query.limit(items_per_page).offset(offset)
+
+    return query.all()

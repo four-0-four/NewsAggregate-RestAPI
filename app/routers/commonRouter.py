@@ -8,7 +8,7 @@ from slowapi.util import get_remote_address
 from app.services.commonService import (
     save_media,
     add_category_db,
-    get_category, delete_last_category,
+    get_category, delete_last_category, get_category_by_parentID,
 )
 from app.util.fileUpload import upload_to_spaces, delete_from_spaces, DeleteError
 from fastapi import UploadFile, HTTPException
@@ -134,3 +134,12 @@ async def delete_one_category(
     return response
 
 
+@router.get("/categories")
+async def query_category(
+    request: Request,
+    user: user_dependency,
+    db: db_dependency,
+    parent_category_id: int
+):
+    categories = get_category_by_parentID(db, parent_category_id)
+    return categories

@@ -6,6 +6,8 @@ from typing import Annotated
 from starlette.exceptions import HTTPException
 
 from app.config.dependencies import db_dependency
+from app.email.sendEmail import sendEmail, sendEmailInternal
+from app.models.user import ContactUsInput
 from app.services.authService import get_current_user
 from app.services.commonService import get_category_by_id, get_keyword_byID
 from app.services.userService import create_category_following, create_keyword_following, get_all_keyword_following, \
@@ -65,4 +67,14 @@ async def add_following_keyword(
     return {"message": "Keyword following added successfully", "following": following_entity}
 
 
+@router.post("/contactUs")
+async def contact_us(request: Request, db: db_dependency, message: ContactUsInput):
+    print(message)
+    subject = "Farabix Contact Us - " + message.full_name + " - " + message.topic
+    message_text = "Email: " + message.email + "\n" + "Full Name: " + message.full_name + "\n" + "Topic: " + message.topic + "\n\n\n" + message.message
 
+    try:
+        sendEmailInternal("Farabix Support <admin@farabix.com>", "msina.raf@gmail.com", subject, message_text)
+        return {"message": "Email sent successfully"}
+    except Exception as e:
+        return {"error": str(e)}

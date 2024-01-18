@@ -5,7 +5,7 @@ import re
 
 # app/controllers/auth_controller.py
 from app.models.common import Media, Keyword, Category
-from app.services.newsService import create_news_category
+from app.services.categoryService import create_news_category
 
 
 def get_media_by_name_and_type(
@@ -85,6 +85,11 @@ def add_keyword(db: Session, keyword: str):
 def get_keyword_byID(db: Session, keyword_id: int):
     keyword = db.query(Keyword).filter(Keyword.id == keyword_id).first()
     return keyword
+
+
+def get_category_by_topic(db: Session, category: str):
+    category = db.query(Category).filter(Category.name == category).first()
+    return category
 
 
 def get_category_by_id(db: Session, category_id:int):
@@ -265,3 +270,10 @@ def delete_all_categories_in_path(db: Session, category_path: str):
         db.commit()
 
     return {"message": "All categories in path deleted successfully"}
+
+
+def get_category_by_parentID(db:Session, parent_category_id: int):
+    existing_category = db.query(Category).filter(
+        Category.parent_id == parent_category_id,
+    ).all()
+    return existing_category
