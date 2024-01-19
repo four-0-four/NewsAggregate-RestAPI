@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from starlette.exceptions import HTTPException
 
 from app.models.common import Keyword, Category
 from app.models.user import UserCategoryFollowing, UserKeywordFollowing
@@ -68,3 +69,21 @@ def create_keyword_following(db: Session, user_id: int, keyword_id: int):
         db.commit()
         db.refresh(keyword_following)
     return keyword_following
+
+
+def remove_keyword_following(db: Session, user_id: int, keyword_id: int):
+    keyword_following = get_keyword_following(db, user_id, keyword_id)
+    if keyword_following:
+        db.delete(keyword_following)
+        db.commit()
+    else:
+        raise HTTPException(status_code=404, detail="Keyword following not found")
+
+
+def remove_category_following(db: Session, user_id: int, category_id: int):
+    category_following = get_category_following(db, user_id, category_id)
+    if category_following:
+        db.delete(category_following)
+        db.commit()
+    else:
+        raise HTTPException(status_code=404, detail="Category following not found")

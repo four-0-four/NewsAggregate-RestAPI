@@ -82,15 +82,20 @@ async def get_different_news_for_topic_page(
     # Initialize an empty dictionary to store news for each category
     variety_news_based_on_categories = {}
 
-    for category in categories:
-        # Call get_news_by_category function for each category and store the result
-        news_for_category = get_news_by_category(db, category.id, hours=1000,
-                                                 limit=3)
-        variety_news_based_on_categories[category.name] = get_news_for_newsCard(db,news_for_category)
+    # Initialize an empty list to store category names
+    category_names = []
 
-    # Return categories and variety_news_based_on_categories as a response
+    for category in categories:
+        # Add category name to the list
+        category_names.append(category.name)
+
+        # Call get_news_by_category function for each category and store the result
+        news_for_category = get_news_by_category(db, category.id, hours=1000, limit=3)
+        variety_news_based_on_categories[category.name] = get_news_for_newsCard(db, news_for_category)
+
+    # Return category names and variety_news_based_on_categories as a response
     return {
-        "categories": categories,
+        "categories": category_names,
         "news": variety_news_based_on_categories
     }
 

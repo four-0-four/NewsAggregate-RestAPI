@@ -139,3 +139,10 @@ class ContactUsInput(BaseModel):
     email: EmailStr = Field(...)
     topic: str = Field(min_length=1, max_length=200)
     message: str = Field(min_length=1, max_length=300)
+
+
+class reportBugInput(BaseModel):
+    full_name: str = Field(min_length=2, max_length=100)
+    email: EmailStr = Field(...)
+    bug: str = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1, max_length=300)
