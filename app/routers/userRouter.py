@@ -118,6 +118,43 @@ async def contact_us(
                 os.remove(file_location)
 
 
+
+@router.post("/requestFeature")
+async def contact_us(
+    full_name: str = Form(...),
+    email: str = Form(...),
+    feature: str = Form(...),
+    description: str = Form(...),
+    files: List[Optional[UploadFile]] = File(None)  # Accept a list of files
+):
+    subject = "Farabix Report Bug - " + full_name + " - " + feature
+    message_text = "Email: " + email + "\nFull Name: " + full_name + "\nFeature: " + feature + "\n\n\n" + description
+
+    file_locations = []
+    try:
+        # Iterate through each file and save it
+        for file in files:
+            if file and file.filename:
+                file_location = f"temp_files/{file.filename}"
+                with open(file_location, "wb+") as file_object:
+                    file_object.write(file.file.read())
+                file_locations.append(file_location)
+        # Send email with attachments
+        if len(file_locations) > 0:
+            sendEmailWithMultipleAttachments("Farabix Support <admin@farabix.com>", "msina.raf@gmail.com", subject, message_text, file_locations)
+            return {"message": "Email sent successfully"}
+        else:
+            sendEmailInternal("Farabix Support <admin@farabix.com>", "msina.raf@gmail.com", subject, message_text)
+            return {"message": "Email sent successfully"}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        # Optionally delete the files after sending the email
+        for file_location in file_locations:
+            if os.path.exists(file_location):
+                os.remove(file_location)
+
+
 @router.post("/add-following")
 async def add_following(
         topic: str,
