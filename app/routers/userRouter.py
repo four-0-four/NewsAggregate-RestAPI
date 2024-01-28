@@ -1,6 +1,6 @@
 import os
 
-from fastapi import APIRouter, Depends, Request, UploadFile, File, Form
+from fastapi import APIRouter, Depends, Request, UploadFile, File, Form, Path
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from typing import Annotated, Optional, List
@@ -8,16 +8,67 @@ from typing import Annotated, Optional, List
 from starlette.exceptions import HTTPException
 
 from app.config.dependencies import db_dependency
+from app.data.newsData import get_category_by_topic, get_keyword
+from app.data.userData import check_username_in_db, update_username_in_db, update_first_name_in_db, \
+    update_last_name_in_db, get_user_by_id
 from app.email.sendEmail import sendEmail, sendEmailInternal, sendEmailWithMultipleAttachments
-from app.models.user import ContactUsInput, reportBugInput
+from app.models.user import ContactUsInput, reportBugInput, UsernameCheckInput, UpdateProfileInput, ChangePasswordInput, \
+    ChangePasswordInputProfile
 from app.services.authService import get_current_user
-from app.services.commonService import get_category_by_id, get_keyword_byID, get_category_by_topic, get_keyword
+from app.services.commonService import get_category_by_id, get_keyword_byID
 from app.services.userService import create_category_following, create_keyword_following, get_all_keyword_following, \
-    get_all_category_following, remove_category_following, remove_keyword_following
+    get_all_category_following, remove_category_following, remove_keyword_following,  \
+    change_password_profile
 
 router = APIRouter(prefix="/user", tags=["user"])
 limiter = Limiter(key_func=get_remote_address)
 user_dependency = Annotated[dict, Depends(get_current_user)]
+
+
+@router.get("/profile/check-username")
+async def check_username(
+    username: str
+):
+    # You might want to handle the database query logic here
+    exists = await check_username_in_db(username)
+    return {"exists": exists}
+
+
+@router.patch("/profile/update")
+async def update_profile(input: UpdateProfileInput, authenticatedUser: user_dependency, db: db_dependency):
+    user = await get_user_by_id(authenticatedUser["id"])
+
+    if input.username and input.username!= user["username"]:
+        if await check_username_in_db(input.username):
+            raise HTTPException(status_code=400, detail="Username already taken")
+        await update_username_in_db(authenticatedUser["id"], input.username)
+
+    print(authenticatedUser["id"])
+    if input.first_name and input.first_name != user["first_name"]:
+        await update_first_name_in_db(authenticatedUser["id"], input.first_name)
+
+    print(authenticatedUser["id"])
+    if input.last_name and input.last_name != user["last_name"]:
+        await update_last_name_in_db(authenticatedUser["id"], input.last_name)
+
+    user = await get_user_by_id(authenticatedUser["id"])
+    return {
+        "username": user["username"],
+        "email": user["email"],
+        "first_name": user["first_name"],
+        "last_name": user["last_name"],
+        "is_active": user["is_active"],
+    }
+
+
+@router.patch("/profile/change-password")
+async def change_user_password(input: ChangePasswordInputProfile, authenticatedUser: user_dependency, db: db_dependency):
+    # Call the change_password function
+    try:
+        return await change_password_profile(authenticatedUser["id"], input.old_password, input.new_password, input.confirm_password)
+    except HTTPException as e:
+        print(e)
+        raise e
 
 
 @router.get("/get-followings")
@@ -71,7 +122,6 @@ async def add_following_keyword(
 
 @router.post("/contactUs")
 async def contact_us(request: Request, db: db_dependency, message: ContactUsInput):
-    print(message)
     subject = "Farabix Contact Us - " + message.full_name + " - " + message.topic
     message_text = "Email: " + message.email + "\n" + "Full Name: " + message.full_name + "\n" + "Topic: " + message.topic + "\n\n\n" + message.message
 
@@ -162,15 +212,15 @@ async def add_following(
         user: user_dependency,
         db: db_dependency):
     # Check if it's a category
-    category = get_category_by_topic(db, topic)
+    category = await get_category_by_topic(topic)
     if category:
-        following_entity = create_category_following(db, user["id"], category.id)
+        following_entity = create_category_following(db, user["id"], category["id"])
         return {"message": "Category following added successfully", "topic": topic}
 
     # Check if it's a keyword
-    keyword = get_keyword(db, topic)
+    keyword = await get_keyword(topic)
     if keyword:
-        following_entity = create_keyword_following(db, user["id"], keyword.id)
+        following_entity = create_keyword_following(db, user["id"], keyword["id"])
         return {"message": "Keyword following added successfully", "topic": topic}
 
     raise HTTPException(status_code=404, detail="Topic not found")
@@ -182,15 +232,15 @@ async def remove_following(
         user: user_dependency,
         db: db_dependency):
     # Check if it's a category and if the user is following it
-    category = get_category_by_topic(db, topic)
+    category = await get_category_by_topic(topic)
     if category:
-        remove_category_following(db, user["id"], category.id)
+        remove_category_following(db, user["id"], category["id"])
         return {"message": "Category following removed successfully", "topic": topic}
 
     # Check if it's a keyword and if the user is following it
-    keyword = get_keyword(db, topic)
+    keyword = await get_keyword(topic)
     if keyword:
-        remove_keyword_following(db, user["id"], keyword.id)
+        remove_keyword_following(db, user["id"], keyword["id"])
         return {"message": "Keyword following removed successfully", "topic": topic}
 
     raise HTTPException(status_code=404, detail="Topic not found")

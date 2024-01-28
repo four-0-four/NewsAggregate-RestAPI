@@ -1,11 +1,12 @@
 from datetime import timedelta, datetime
 
-from sqlalchemy import func
+from sqlalchemy import func, and_
 
+from app.data.newsData import get_keyword
 from app.models.common import Media, Keyword, NewsCorporations, Category
 from app.models.user import UserCategoryFollowing, UserKeywordFollowing
 from app.models.writer import Writer
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, subqueryload
 from app.models.news import (
     NewsLocation,
     NewsCategory,
@@ -17,17 +18,18 @@ from fastapi import APIRouter, Depends, Request, UploadFile
 from typing import List
 from fastapi import HTTPException
 from app.models.news import News, NewsInput
-from app.services.commonService import get_keyword, add_keyword, add_news_categories_db, get_media_by_url, \
+from app.services.commonService import add_keyword, add_news_categories_db, get_media_by_url, \
     add_media_by_url_to_db
 from app.services.locationService import find_city_by_name, find_province_by_name, find_continent_by_country, \
     find_country_by_name, add_news_location
 from app.services.writerService import validate_writer
+import pytz
 
 
 #################################### News ####################################
 
 
-def add_news_from_newsInput(db: Session, news_input: NewsInput):
+async def add_news_from_newsInput(db: Session, news_input: NewsInput):
     # Validate inputs
     if not news_input.title or not news_input.content:
         raise HTTPException(status_code=400, detail="Title and content are required")
@@ -50,13 +52,33 @@ def add_news_from_newsInput(db: Session, news_input: NewsInput):
     if writer_id and not validate_writer(db, writer_id):
         raise HTTPException(status_code=404, detail="Writer not found")
 
+    # Convert publishedDate from EST to UTC
+    if news_input.publishedDate:
+        # Assuming news_input.publishedDate is a naive datetime object in Eastern Time
+        eastern = pytz.timezone('America/Toronto')
+
+        # Localize the naive datetime object to Eastern Time
+        eastern_time = eastern.localize(news_input.publishedDate)
+
+        # Check if the date falls within Daylight Saving Time
+        is_dst = bool(eastern_time.dst())
+        if is_dst:
+            # If DST is in effect, convert to EDT (UTC-4)
+            utc_time = eastern_time.astimezone(pytz.timezone('UTC'))
+        else:
+            # If DST is not in effect, convert to EST (UTC-5)
+            utc_time = eastern_time.astimezone(pytz.timezone('UTC'))
+
+        # Update the publishedDate to UTC time
+        news_input.publishedDate = utc_time
+
     # adding the news to the database
     news = add_news_db(db, news_input)
 
     # adding keywords to the the database if not exists
     for keyword in news_input.keywords:
         # Check if the keyword exists
-        existing_keyword = get_keyword(db, keyword)
+        existing_keyword = await get_keyword(keyword)
         if not existing_keyword:
             # Add the keyword if it does not exist
             existing_keyword = add_keyword(db, keyword)
@@ -225,24 +247,6 @@ def get_news_media(db: Session, news_id: int, media_id: int):
     )
 
 
-def get_news_by_category(db: Session, category_id: int, hours: int = 0, limit: int = None):
-    query = (
-        db.query(News)
-        .join(NewsCategory)
-        .filter(NewsCategory.category_id == category_id)
-    )
-
-    if hours > 0:
-        twelve_hours_ago = datetime.utcnow() - timedelta(hours=hours)
-        query = query.filter(News.publishedDate >= twelve_hours_ago)
-
-    query = query.order_by(News.publishedDate.desc())  # Order by publication date in descending order
-    if limit is not None:
-        return query.limit(limit).all()
-    else:
-        return query.all()
-
-
 
 def get_news_for_video(db: Session, category_id: int, hours: int = 12):
     if hours == 0 or hours is None:
@@ -277,19 +281,6 @@ def get_news_for_video(db: Session, category_id: int, hours: int = 12):
     return news_with_media
 
 
-
-def get_news_by_keyword(db: Session, keyword_id: int):
-    # Assuming there's a relationship defined between News and NewsCategory
-    # This will join News with NewsCategory and filter by the provided category_id
-    # Finally, it will return a list of News objects
-    return (
-        db.query(News)
-        .join(NewsKeywords)
-        .filter(NewsKeywords.keyword_id == keyword_id)
-        .all()
-    )
-
-
 #################################### NewsAffiliates ####################################
 
 
@@ -314,36 +305,38 @@ def create_news_affiliates(db: Session, news_id: int, corporation_id: int, exter
 def get_news_corporations(db: Session, corporation_id:int):
     return db.query(NewsCorporations).filter(NewsCorporations.id == corporation_id).first()
 
-def get_news_by_user_following(db: Session, user_id: int, hours_ago: int = 24):
-    def filter_by_time(query, hours_ago):
-        if hours_ago > 0:
-            datetime_hours_ago = datetime.utcnow() - timedelta(hours=hours_ago)
-            return query.filter(News.publishedDate >= datetime_hours_ago)
-        return query
+def get_news_by_user_following(db: Session, user_id: int, hours_ago: int = 24, page: int = 1, page_size: int = 20):
+    datetime_hours_ago = datetime.utcnow() - timedelta(hours=hours_ago)
 
-    def get_interested_news(join_model, join_condition, following_model, following_condition):
-        query = (
-            db.query(News)
-            .join(join_model, join_condition)
-            .join(following_model, following_condition)
-            .filter(following_model.user_id == user_id)
+    # Calculate the offset (number of records to skip)
+    offset = (page - 1) * page_size
+
+    # Combined query for categories and keywords with eager loading for related entities
+    query = (
+        db.query(News)
+        .filter(News.publishedDate >= datetime_hours_ago)
+        .join(NewsCategory, NewsCategory.news_id == News.id, isouter=True)
+        .join(UserCategoryFollowing,
+              and_(UserCategoryFollowing.category_id == NewsCategory.category_id,
+                   UserCategoryFollowing.user_id == user_id),
+              isouter=True)
+        .join(NewsKeywords, NewsKeywords.news_id == News.id, isouter=True)
+        .join(UserKeywordFollowing,
+              and_(UserKeywordFollowing.keyword_id == NewsKeywords.keyword_id,
+                   UserKeywordFollowing.user_id == user_id),
+              isouter=True)
+        .options(
+            joinedload(News.categories),
+            joinedload(News.keywords),
+            joinedload(News.media),
+            subqueryload(News.affiliates)
         )
-        query = filter_by_time(query, hours_ago)
-        return query.order_by(News.createdAt.desc()).all()
-
-    # Assuming the relationships and foreign keys are set up as described in your ORM models
-    interested_news_by_category = get_interested_news(
-        NewsCategory, NewsCategory.news_id == News.id,
-        UserCategoryFollowing, UserCategoryFollowing.category_id == NewsCategory.category_id
+        .order_by(News.createdAt.desc())
+        .limit(page_size)
+        .offset(offset)
     )
 
-    interested_news_by_keyword = get_interested_news(
-        NewsKeywords, NewsKeywords.news_id == News.id,
-        UserKeywordFollowing, UserKeywordFollowing.keyword_id == NewsKeywords.keyword_id
-    )
-
-    all_interested_news = interested_news_by_category + interested_news_by_keyword
-    return all_interested_news
+    return query.all()
 
 
 
@@ -407,25 +400,37 @@ def get_news_for_newsCard(db: Session, listOfNews):
     return newsCards
 
 
-def get_news_by_category_or_keyword(db: Session, category_id: int = None, keyword_id: int = None, page: int = 1, items_per_page: int = 10):
-    query = db.query(News)
+def format_newscard(rows: List[dict]) -> List[dict]:
+    if not rows:
+        return []
 
-    if category_id and keyword_id:
-        query = query.join(NewsCategory).join(NewsKeywords).filter(
-            (NewsCategory.category_id == category_id) |
-            (NewsKeywords.keyword_id == keyword_id)
-        )
-    elif category_id:
-        query = query.join(NewsCategory).filter(NewsCategory.category_id == category_id)
-    elif keyword_id:
-        query = query.join(NewsKeywords).filter(NewsKeywords.keyword_id == keyword_id)
+    final_output = []
+    current_news = {}
 
-    query = query.order_by(News.publishedDate.desc())
+    for row in rows:
+        if row['title'] != current_news.get('title'):
+            if current_news:
+                # Convert sets to lists before appending
+                current_news['media'] = list(current_news['media'])
+                final_output.append(current_news)
 
-    # Calculate the offset based on the page number and items per page
-    offset = (page - 1) * items_per_page
+            current_news = {k: v for k, v in row.items() if
+                            k not in ['category_name', 'keyword_name', 'fileName', 'corporation_name', 'logo']}
 
-    # Apply pagination using the limit and offset
-    query = query.limit(items_per_page).offset(offset)
+            # Initialize sets for categories, keywords, and media to avoid duplicates
+            current_news['media'] = {row['fileName']}
 
-    return query.all()
+            # Handle affiliate (news corporation) data
+            if row['corporation_name']:
+                current_news['from'] = row['corporation_name']
+                current_news['fromImage'] = row['logo']
+        else:
+            if row['fileName']:
+                current_news['media'].add(row['fileName'])
+
+    # Don't forget to add the last news item after the loop
+    if current_news:
+        current_news['media'] = list(current_news['media'])
+        final_output.append(current_news)
+
+    return final_output

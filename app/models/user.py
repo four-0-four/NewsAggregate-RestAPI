@@ -146,3 +146,47 @@ class reportBugInput(BaseModel):
     email: EmailStr = Field(...)
     bug: str = Field(min_length=1, max_length=200)
     description: str = Field(min_length=1, max_length=300)
+
+class UsernameCheckInput(BaseModel):
+    username: str
+
+class UpdateProfileInput(BaseModel):
+    username: Optional[str] = Field(default=None, min_length=2, max_length=100)
+    first_name: Optional[str] = Field(min_length=2, max_length=100)
+    last_name: Optional[str] = Field(min_length=2, max_length=100)
+
+    @field_validator('username')
+    def validate_username(cls, value: Optional[str]):
+        if value is not None:
+            if not value.isalnum():
+                raise ValueError('Username must only contain alphanumeric characters')
+        return value
+
+class ChangePasswordInputProfile(BaseModel):
+    old_password: str = Field(..., description="The current password of the user.")
+    new_password: str = Field(..., description="The new password for the user.")
+    confirm_password: str = Field(..., description="Confirmation of the new password.")
+
+    @field_validator('old_password')
+    def validate_password_strength(cls, value: str):
+        if len(value) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r"[0-9!@#$%^&*(),.?\":{}|<>]", value):
+            raise ValueError('Password must contain at least one number or special character')
+        return value
+
+    @field_validator('new_password')
+    def validate_password_strength(cls, value: str):
+        if len(value) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r"[0-9!@#$%^&*(),.?\":{}|<>]", value):
+            raise ValueError('Password must contain at least one number or special character')
+        return value
+
+    @field_validator('confirm_password')
+    def validate_password_strength(cls, value: str):
+        if len(value) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r"[0-9!@#$%^&*(),.?\":{}|<>]", value):
+            raise ValueError('Password must contain at least one number or special character')
+        return value

@@ -100,7 +100,6 @@ def test_add_news_empty_content():
 def test_add_news_db():
     jwt_token = test_login_valid_user()
     response_data = get_test_news()
-    print(response_data)
     if "message" in response_data and response_data["message"] == "News found successfully.":
         tst_delete_news_db()
     # Arrange
