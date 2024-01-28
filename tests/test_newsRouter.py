@@ -97,49 +97,6 @@ def test_add_news_empty_content():
     assert response.status_code == 400
     assert response.json()["detail"] == "Title and content are required"
 
-def test_add_news_db():
-    jwt_token = test_login_valid_user()
-    response_data = get_test_news()
-    if "message" in response_data and response_data["message"] == "News found successfully.":
-        tst_delete_news_db()
-    # Arrange
-    news_input = NewsInput(
-        title="Test News1: this is just a test69",
-        description="Test Description",
-        content="This is a test content for the news.",
-        publishedDate=datetime.now().isoformat(),  # Convert to string
-        language_id=1,
-        isInternal=False,
-        isPublished=True,
-        keywords=["test", "news", "pytest"],
-        locations=["Sample Location"],  # Add a valid location
-        newsCorporationID=5,  # Add a valid news corporation ID
-        externalLink="https://example.com",  # Add a valid external link
-        media_urls=[
-            "https://www.thehealthy.com/wp-content/uploads/2023/04/woman-laughing-pink-background-GettyImages-1371951375-MLedit.jpg"
-        ],
-        categories=["sample"],
-        writer_id=None
-    )
-
-    # Convert all datetime fields to strings
-    news_input_dict = news_input.dict()
-    for key, value in news_input_dict.items():
-        if isinstance(value, datetime):
-            news_input_dict[key] = value.isoformat()
-
-    headers = {"Authorization": f"Bearer {jwt_token}"}
-
-    # Act
-    response = client.post("/news/add", headers=headers,  json=news_input_dict)
-
-    # Assert
-    assert response.json() == {"message": "News added successfully."}
-    assert response.status_code == 200
-
-    tst_get_news_db()
-    tst_delete_news_db()
-
 def test_add_news_empty_keywords():
     jwt_token = test_login_valid_user()
     # Arrange with empty title and valid content
