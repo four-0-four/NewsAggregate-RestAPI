@@ -1,9 +1,10 @@
+import asyncio
 import sys
 
 from app.cron.newsJob import run_news_cron_job, run_getNews_for_one_corporation
 
 
-def main():
+async def main():
     if len(sys.argv) < 2:
         print("Usage: python script.py [language|location|news]")
         sys.exit(1)
@@ -12,7 +13,7 @@ def main():
 
     if job_type == 'news':
         print("LOG: Running news job...")
-        run_news_cron_job()
+        await run_news_cron_job()
     elif job_type == 'getNews':
         print("LOG: getting news job for specific organization...")
         if len(sys.argv) < 2:
@@ -20,8 +21,8 @@ def main():
             sys.exit(1)
 
         organization_name = sys.argv[2]
-        run_getNews_for_one_corporation(organization_name)
+        await run_getNews_for_one_corporation(organization_name)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

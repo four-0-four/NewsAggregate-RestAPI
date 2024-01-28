@@ -48,10 +48,11 @@ def delete_user_func(
     return {"detail": "User deleted successfully"}
 
 
-def generate_random_username(length=8):
-    """Generate a random username."""
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(length))
+def generate_random_username():
+    """Generate a random username for a journalist with enhanced randomness."""
+    keyword = "anonymous"
+    random_number = random.randint(1, 99999999)  # Expanded range for greater randomness
+    return f"{keyword}_{random_number}"
 
 
 def register_user(request: Request, response: Response, user: UserInput, db: db_dependency):
@@ -155,8 +156,7 @@ def login_user(
     access_token = create_access_token(access_data)
     refresh_token = create_refresh_token(access_data)
 
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True)
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer" , "refresh_token": refresh_token}
 
 
 
@@ -265,9 +265,7 @@ def initiate_password_reset(email: str, db: db_dependency):
 
 
 
-def get_refresh_token(
-    response: Response, db: db_dependency, refresh_token: str = Depends(oauth2_bearer)
-):
+def get_refresh_token(db: db_dependency, refresh_token: str):
     try:
         payload = validate_refresh_token(refresh_token)
         user = db.query(User).filter(User.id == payload.get("id")).first()
@@ -279,19 +277,16 @@ def get_refresh_token(
         new_access_token = create_access_token(access_data)
         new_refresh_token = create_refresh_token(access_data)
 
-        # Set new refresh token in an HttpOnly cookie
-        response.set_cookie(key="refresh_token", value=new_refresh_token, httponly=True)
-
         return {
             "access_token": new_access_token,
+            "refresh_token": new_refresh_token,
             "token_type": "bearer"
         }
     except HTTPException as e:
-        response.delete_cookie(key="refresh_token")
         raise e
 
 
-def change_password(token_str: str, new_password: str, confirm_password: str, db):
+def change_password( response: Response, token_str: str, new_password: str, confirm_password: str, db):
     # Confirm the token
     email = confirm_token_and_getEmail(token_str, db)
 
@@ -319,11 +314,24 @@ def change_password(token_str: str, new_password: str, confirm_password: str, db
     refresh_token = create_refresh_token(access_data)
 
     # Return the access token (logging the user in)
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
 
 
 ################################### helper functions ##############################################
 
+
+def new_user_to_json(user: User):
+    return {
+        "username": user["username"],
+        "email": user["email"],
+        "first_name": user["first_name"],
+        "last_name": user["last_name"],
+        "is_active": user["is_active"],
+    }
 
 def user_to_json(user: User):
     return {

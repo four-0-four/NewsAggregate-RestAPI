@@ -1,16 +1,18 @@
 # app/controllers/auth_controller.py
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, Response, Request, Header
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
 from requests import Session
+from starlette import status
+
 from app.services.authService import (
     delete_user_func,
     get_refresh_token,
     register_user,
     delete_user_func,
     login_user, get_current_user, get_loggedin_user, initiate_password_reset, change_password,
-    check_token, confirm_token_and_activate_account,
+    check_token, confirm_token_and_activate_account, generate_token,
 )
 from app.models.user import UserInput, User, DeleteUserInput, ChangePasswordInput
 from app.config.dependencies import get_db, oauth2_bearer
@@ -21,7 +23,6 @@ from slowapi.util import get_remote_address
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 limiter = Limiter(key_func=get_remote_address)
-
 
 @router.post("/user/signup")
 async def create_user(
@@ -76,6 +77,7 @@ async def forget_password(request: Request, response: Response, db: Session = De
 @router.post("/user/change-password")
 async def forget_password(request: Request, response: Response, newInfo: ChangePasswordInput, db: Session = Depends(get_db)):
     return change_password(
+        response,
         newInfo.token,
         newInfo.newPassword,
         newInfo.confirmPassword,
@@ -83,10 +85,9 @@ async def forget_password(request: Request, response: Response, newInfo: ChangeP
     )
 
 
-@router.post("/refresh/")
-async def refresh_access_token(
-    response: Response,
-    refresh_token: str = Depends(oauth2_bearer),
-    db: Session = Depends(get_db),
-):
-    return get_refresh_token(response, refresh_token, db)
+@router.post("/refresh/", status_code=status.HTTP_200_OK)
+async def refresh_access_token(request: Request, refresh_token: str = Header(None, alias='Refresh-Token'), db: Session = Depends(get_db)):
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
+
+    return get_refresh_token(db, refresh_token)

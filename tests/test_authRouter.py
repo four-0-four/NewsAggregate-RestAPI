@@ -56,8 +56,8 @@ def test_register_invalid_password():
 def login_test_user():
     # Arrange
     valid_user = {
-        "username": "sina",
-        "password": "sinasina12"
+        "username": "rafieisi",
+        "password": "s1i1n1a1"
     }
 
     # Act

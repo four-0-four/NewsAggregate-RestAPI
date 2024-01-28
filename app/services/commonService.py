@@ -71,11 +71,6 @@ def save_media(db: Session, file_name: str, file_type: str, file_extension: str)
     return new_media
 
 
-def get_keyword(db: Session, keyword: str):
-    keyword = db.query(Keyword).filter(Keyword.name == keyword).first()
-    return keyword
-
-
 def add_keyword(db: Session, keyword: str):
     new_keyword = Keyword(name=keyword)
     db.add(new_keyword)
@@ -85,11 +80,6 @@ def add_keyword(db: Session, keyword: str):
 def get_keyword_byID(db: Session, keyword_id: int):
     keyword = db.query(Keyword).filter(Keyword.id == keyword_id).first()
     return keyword
-
-
-def get_category_by_topic(db: Session, category: str):
-    category = db.query(Category).filter(Category.name == category).first()
-    return category
 
 
 def get_category_by_id(db: Session, category_id:int):

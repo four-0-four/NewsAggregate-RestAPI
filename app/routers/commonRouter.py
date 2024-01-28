@@ -2,13 +2,14 @@
 from fastapi import APIRouter, Depends, Request, UploadFile, File, Form
 from typing import Annotated
 from app.config.dependencies import db_dependency
+from app.data.newsData import get_category_by_parentID
 from app.services.authService import get_current_user
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from app.services.commonService import (
     save_media,
     add_category_db,
-    get_category, delete_last_category, get_category_by_parentID,
+    get_category, delete_last_category
 )
 from app.util.fileUpload import upload_to_spaces, delete_from_spaces, DeleteError
 from fastapi import UploadFile, HTTPException
@@ -141,5 +142,6 @@ async def query_category(
     db: db_dependency,
     parent_category_id: int
 ):
-    categories = get_category_by_parentID(db, parent_category_id)
-    return categories
+    categories = await get_category_by_parentID(parent_category_id)
+    category_names = [category['name'] for category in categories]
+    return category_names

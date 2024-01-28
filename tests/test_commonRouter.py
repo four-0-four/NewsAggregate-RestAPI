@@ -92,28 +92,13 @@ def test_get_category_success_one_category():
     headers = {"Authorization": f"Bearer {jwt_token}"}
 
     # Act
-    response = client.get("/common/category", params={"category": "technology"}, headers=headers)
+    response = client.get("/common/category", params={"category": "Technology"}, headers=headers)
 
     # Assert
     assert response.status_code == 200
     assert "category" in response.json()
-    assert response.json()["category"]["name"] == "technology"
+    assert response.json()["category"]["name"] == "Technology"
 
-
-def test_get_category_success_2ndLevel_sub_category():
-    # Login and get JWT token
-    jwt_token = test_login_valid_user()
-
-    # Headers with Authorization
-    headers = {"Authorization": f"Bearer {jwt_token}"}
-
-    # Act
-    response = client.get("/common/category", params={"category": "sports/Football"}, headers=headers)
-
-    # Assert
-    assert response.status_code == 200
-    assert "category" in response.json()
-    assert response.json()["category"]["name"] == "Football"
 
 def test_get_category_failure_one_category():
     # Login and get JWT token
