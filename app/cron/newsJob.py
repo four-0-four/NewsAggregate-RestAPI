@@ -9,12 +9,11 @@ from app.email.sendEmail import sendEmailInternal
 from app.models.common import NewsCorporations
 from app.models.news import NewsInput
 from app.services.newsService import add_news_from_newsInput, get_news_by_title
-from app.cron.openAI import extract_news_info, filter_entities
+from app.cron.openAI import extract_news_info
 from dotenv import load_dotenv
 from datetime import datetime
 import os
 import asyncio
-from app.services.authService import authenticate_user
 from eventregistry import EventRegistry, QueryArticlesIter, ReturnInfo, ArticleInfoFlags, SourceInfoFlags
 
 # Load environment variables
@@ -152,6 +151,10 @@ async def get_news_for_corporation_and_save(news_corporation, news_corporation_i
 
         #news analysis
         news_data = await extract_news_info(news_data)
+        if not news_data:
+            local_number_of_warnings += 1
+            print(f"        WARNING: News item titled '{news_data.title}' could not be analyzed.")
+            continue
 
         try:
             response = await add_news_from_newsInput(db, news_data)
@@ -194,7 +197,7 @@ def send_cron_job_summary_email():
     for category, count in overall_categories_count.items():
         category_count_message += f"    {category}: {count}\n"
 
-    summary_message = f"Cron Job Summary:\n{message}\nErrors:\n{error_message}\n{category_count_message}"
+    summary_message = f"Cron Job Summary:\n{message}\n\n{category_count_message}"
     sendEmailInternal("Farabix Support <admin@farabix.com>", "msina.raf@gmail.com", 'Cron Job Summary', summary_message)
 
 async def run_getNews_for_one_corporation(corporationName):

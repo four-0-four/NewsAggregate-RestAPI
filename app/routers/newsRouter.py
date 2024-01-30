@@ -12,7 +12,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from typing import Annotated
 from app.services.authService import get_current_user
-from app.services.commonService import add_keyword, get_category, add_category_db, add_media_by_url_to_db, \
+from app.services.commonService import get_category, add_category_db, add_media_by_url_to_db, \
     get_media_by_url, add_news_categories_db, get_category_by_id
 from app.services.newsService import add_news_db, create_news_keyword, get_news_by_title, delete_news_by_title, \
     create_news_media, get_news_for_video, get_news_affiliates, create_news_affiliates, get_news_corporations, \

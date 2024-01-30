@@ -20,6 +20,16 @@ async def get_keyword(keyword: str) -> Optional[dict]:
                 await cur.execute("SELECT * FROM keywords WHERE name = %s;", (keyword,))
                 return await cur.fetchone()
 
+
+async def add_keyword(keyword: str):
+    async with aiomysql.create_pool(**conn_params) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute("INSERT INTO keywords (name) VALUES (%s);", (keyword,))
+                # Commit the transaction
+                await conn.commit()
+
+
 async def fetch_news_by_id(news_id: int) -> Optional[List[dict]]:
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
@@ -127,7 +137,12 @@ async def get_news_by_category(category_id: int, hours: int) -> List[dict]:
 
 
 async def get_category_by_parentID(parent_category_id: int):
-    query = """SELECT * FROM categories WHERE parent_id = %s;"""
+    query = """
+    SELECT categories.* FROM categories
+    JOIN newsCategories ON categories.id = newsCategories.category_id
+    WHERE categories.parent_id = %s
+    GROUP BY categories.id;
+    """
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
