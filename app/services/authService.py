@@ -69,7 +69,7 @@ def register_user(request: Request, response: Response, user: UserInput, db: db_
 
             # Send an email with the activation link (implement send_activation_email)
             activation_link = f"http://localhost:3000/auth/ActivateAccount?token={token}"
-            sendEmail("Farabix Support <admin@farabix.com>", user.email, "Activate Your Account", activation_link)
+            sendEmail("Farabix Support <admin@farabix.com>", user.email, "activateAccount", activation_link)
 
             raise HTTPException(status_code=400, detail="User already exists but is not verified. An activation email has been sent. Please check your email.")
         else:
@@ -253,6 +253,17 @@ def initiate_password_reset(email: str, db: db_dependency):
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User with given email not found")
+
+    if not user.is_active:  # Check if the existing user is not active
+        # Generate a new activation token (implement this function)
+        token = generate_token(user.email, db)
+
+        # Send an email with the activation link (implement send_activation_email)
+        activation_link = f"http://localhost:3000/auth/ActivateAccount?token={token}"
+        sendEmail("Farabix Support <admin@farabix.com>", user.email, "activateAccount", activation_link)
+
+        return {"message": "user is not verified yet! we sent an activation email"}
+
 
     # Generate a password reset token (you need to implement this)
     reset_token = generate_token(email, db)

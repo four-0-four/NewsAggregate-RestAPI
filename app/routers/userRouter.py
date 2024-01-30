@@ -43,11 +43,9 @@ async def update_profile(input: UpdateProfileInput, authenticatedUser: user_depe
             raise HTTPException(status_code=400, detail="Username already taken")
         await update_username_in_db(authenticatedUser["id"], input.username)
 
-    print(authenticatedUser["id"])
     if input.first_name and input.first_name != user["first_name"]:
         await update_first_name_in_db(authenticatedUser["id"], input.first_name)
 
-    print(authenticatedUser["id"])
     if input.last_name and input.last_name != user["last_name"]:
         await update_last_name_in_db(authenticatedUser["id"], input.last_name)
 

@@ -2,7 +2,7 @@ from datetime import timedelta, datetime
 
 from sqlalchemy import func, and_
 
-from app.data.newsData import get_keyword
+from app.data.newsData import get_keyword, add_keyword
 from app.models.common import Media, Keyword, NewsCorporations, Category
 from app.models.user import UserCategoryFollowing, UserKeywordFollowing
 from app.models.writer import Writer
@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, Request, UploadFile
 from typing import List
 from fastapi import HTTPException
 from app.models.news import News, NewsInput
-from app.services.commonService import add_keyword, add_news_categories_db, get_media_by_url, \
+from app.services.commonService import add_news_categories_db, get_media_by_url, \
     add_media_by_url_to_db
 from app.services.locationService import find_city_by_name, find_province_by_name, find_continent_by_country, \
     find_country_by_name, add_news_location
@@ -81,10 +81,11 @@ async def add_news_from_newsInput(db: Session, news_input: NewsInput):
         existing_keyword = await get_keyword(keyword)
         if not existing_keyword:
             # Add the keyword if it does not exist
-            existing_keyword = add_keyword(db, keyword)
+            await add_keyword(keyword)
+            existing_keyword = await get_keyword(keyword)
 
         # Add the keyword to the newsKeywords table
-        newsKeyword = create_news_keyword(db, news.id, existing_keyword.id)
+        newsKeyword = create_news_keyword(db, news.id, existing_keyword["id"])
 
     # processing the categories and adding them to the database of both news and categories if not exists
     for category in news_input.categories:

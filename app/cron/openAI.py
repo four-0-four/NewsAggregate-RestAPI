@@ -62,14 +62,18 @@ async def extract_news_info(news_item):
     news_custom_functions = [get_news_function(category_names)]
     response = client.chat.completions.create(
         model='gpt-3.5-turbo',
-        messages=[{'role': 'user', 'content': news_item.title+'\n\n'+news_item.content}],
+        messages=[{'role': 'user', 'content': "news title: '"+news_item.title+"'\n\n"+"news body: '"+news_item.content[:12000]+"'"}],
         functions=news_custom_functions,
         function_call='auto'
     )
 
     # Loading the response as a JSON object
-    json_response = json.loads(response.choices[0].message.function_call.arguments)
-    news_item.keywords = json_response['entities']
+    json_response = {}
+    if response.choices and response.choices[0].message.function_call:
+        json_response = json.loads(response.choices[0].message.function_call.arguments)
+    else:
+        return None
+    news_item.keywords = json_response.get('entities',[])
     # Building category string
     category = json_response.get('category', '')
     news_item.categories = [category]
