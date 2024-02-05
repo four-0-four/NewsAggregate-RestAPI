@@ -150,6 +150,7 @@ async def get_news_for_corporation_and_save(news_corporation, news_corporation_i
             continue
 
         #news analysis
+        print(news_data.title)
         news_data = await extract_news_info(news_data)
         if not news_data:
             local_number_of_warnings += 1

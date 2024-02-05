@@ -58,7 +58,12 @@ async def fetch_news_by_id(news_id: int) -> Optional[List[dict]]:
                 return await cur.fetchall()
 
 
-async def get_news_by_keyword(keyword_id: int, hours: int = 48) -> List[dict]:
+async def get_news_by_keyword(keyword_id: int, last_news_time: str, number_of_news_to_fetch: int) -> \
+List[dict]:
+    # Use current time if last_news_time is not provided
+    if last_news_time is None or last_news_time == '':
+        last_news_time = datetime.now()
+
     query = """
         SELECT 
             n.*, 
@@ -72,18 +77,23 @@ async def get_news_by_keyword(keyword_id: int, hours: int = 48) -> List[dict]:
         LEFT JOIN newsAffiliates na ON n.id = na.news_id
         LEFT JOIN newsCorporations ncorp ON na.newsCorporation_id = ncorp.id
         WHERE nk.keyword_id = %s
-          AND n.publishedDate >= (NOW() - INTERVAL %s HOUR)
-        ORDER BY n.publishedDate DESC;
+          AND n.publishedDate < %s
+        ORDER BY n.publishedDate DESC
+        LIMIT %s;
     """
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(query, (keyword_id, hours))
+                await cur.execute(query,
+                                  (keyword_id, last_news_time, number_of_news_to_fetch))
                 return await cur.fetchall()
 
 
-async def get_news_by_user_following(user_id: int, hours_ago: int = 24):
-    datetime_hours_ago = datetime.utcnow() - timedelta(hours=hours_ago)
+async def get_news_by_user_following(user_id: int, last_news_time: Optional[str], number_of_news_to_fetch: int):
+    # Use current time if last_news_time is not provided
+    if last_news_time is None or last_news_time == '':
+        last_news_time = datetime.utcnow()
+
     query = """
             SELECT 
                 news.*,
@@ -97,22 +107,26 @@ async def get_news_by_user_following(user_id: int, hours_ago: int = 24):
             LEFT JOIN media ON newsMedia.media_id = media.id
             LEFT JOIN newsAffiliates ON news.id = newsAffiliates.news_id
             LEFT JOIN newsCorporations ON newsAffiliates.newsCorporation_id = newsCorporations.id
-            WHERE news.publishedDate >= %s
+            WHERE news.publishedDate < %s
               AND (newsCategories.category_id IN (
                     SELECT category_id FROM user_category_following WHERE user_id = %s)
                    OR newsKeywords.keyword_id IN (
                     SELECT keyword_id FROM user_keyword_following WHERE user_id = %s))
-            ORDER BY news.createdAt DESC;
+            ORDER BY news.publishedDate DESC
+            LIMIT %s;
         """
 
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(query, (datetime_hours_ago, user_id, user_id))
+                await cur.execute(query, (last_news_time, user_id, user_id, number_of_news_to_fetch))
                 return await cur.fetchall()
 
 
-async def get_news_by_category(category_id: int, hours: int) -> List[dict]:
+async def get_news_by_category(category_id: int, last_news_time: str, number_of_news_to_fetch: int) -> List[dict]:
+    if last_news_time is None:
+        last_news_time = datetime.now()
+
     query = """
         SELECT 
             n.*,
@@ -126,13 +140,14 @@ async def get_news_by_category(category_id: int, hours: int) -> List[dict]:
         LEFT JOIN newsAffiliates na ON n.id = na.news_id
         LEFT JOIN newsCorporations ncorp ON na.newsCorporation_id = ncorp.id
         WHERE ncat.category_id = %s
-          AND n.publishedDate >= (NOW() - INTERVAL %s HOUR)
-        ORDER BY n.publishedDate DESC;
+          AND n.publishedDate < %s
+        ORDER BY n.publishedDate DESC
+        LIMIT %s;
     """
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(query, (category_id, hours))
+                await cur.execute(query, (category_id, last_news_time, number_of_news_to_fetch))
                 return await cur.fetchall()
 
 

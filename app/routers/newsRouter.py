@@ -1,23 +1,16 @@
-from fastapi import Request, UploadFile, File, Form
+from fastapi import Request
 from app.config.dependencies import db_dependency
 from app.data.newsData import fetch_news_by_id, get_category_by_topic, get_keyword, \
-    get_news_by_keyword, get_news_by_category, get_category_by_parentID, \
-    get_news_by_user_following
+    get_news_by_keyword, get_news_by_category, get_news_by_user_following
 from app.models.news import NewsInput, NewsDescription
-from app.services.locationService import find_city_by_name, find_continent_by_country, find_province_by_name, \
-    find_country_by_name, add_news_location
-from app.services.writerService import validate_writer
 from fastapi import HTTPException, Path, APIRouter, Depends
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from typing import Annotated
 from app.services.authService import get_current_user
-from app.services.commonService import get_category, add_category_db, add_media_by_url_to_db, \
-    get_media_by_url, add_news_categories_db, get_category_by_id
-from app.services.newsService import add_news_db, create_news_keyword, get_news_by_title, delete_news_by_title, \
-    create_news_media, get_news_for_video, get_news_affiliates, create_news_affiliates, get_news_corporations, \
-    get_news_for_newsCard, get_news_by_id, get_news_information, add_news_from_newsInput,\
-    format_newscard
+from app.services.commonService import get_category_by_id
+from app.services.newsService import get_news_by_title, delete_news_by_title, \
+    get_news_for_video, get_news_for_newsCard, add_news_from_newsInput, format_newscard, get_oldest_news_time
 from app.services.newsAnalyzer import extract_keywords
 
 router = APIRouter(prefix="/news", tags=["news"])
@@ -67,11 +60,14 @@ async def get_news_byID(
 async def get_news(
         request: Request,
         user: user_dependency,
+        last_news_time: str,
+        number_of_articles_to_fetch: int,
         db: db_dependency):
     # check if title is unique
-    all_interested_news = await get_news_by_user_following(user["id"])
-    formatted_newscard = format_newscard(all_interested_news)
-    return formatted_newscard
+    all_interested_news = await get_news_by_user_following(user["id"], last_news_time, number_of_articles_to_fetch * 2)
+    formatted_newscard = format_newscard(all_interested_news[:number_of_articles_to_fetch])
+    new_last_news_time = get_oldest_news_time(formatted_newscard)
+    return {"news": formatted_newscard, "last_news_time": new_last_news_time, "load_more": len(all_interested_news)>number_of_articles_to_fetch}
 
 
 
@@ -154,19 +150,23 @@ async def get_news_by_topid(
         request: Request,
         user: user_dependency,
         db: db_dependency,
-        topic: str):
+        topic: str,
+        last_news_time: str,
+        number_of_articles_to_fetch: int):
 
     category = await get_category_by_topic(topic)
     if category:
-        news = await get_news_by_category(category['id'], 24)
-        news_card = format_newscard(news)
-        return news_card
+        news = await get_news_by_category(category['id'], last_news_time, number_of_articles_to_fetch * 2)
+        news_card = format_newscard(news[:number_of_articles_to_fetch])
+        new_last_news_time = get_oldest_news_time(news_card)
+        return {"news": news_card, "last_news_time": new_last_news_time, "load_more": len(news)>number_of_articles_to_fetch}
 
     keyword = await get_keyword(topic)
     if keyword and keyword is not None:
-        news = await get_news_by_keyword(keyword['id'], 24)
-        news_card = format_newscard(news)
-        return news_card
+        news = await get_news_by_keyword(keyword['id'], last_news_time, number_of_articles_to_fetch * 2)
+        news_card = format_newscard(news[:number_of_articles_to_fetch])
+        new_last_news_time = get_oldest_news_time(news_card)
+        return {"news": news_card, "last_news_time": new_last_news_time, "load_more": len(news)>number_of_articles_to_fetch}
 
-    return []
+    return {"news": [], "last_news_time": last_news_time, "load_more": False}
 

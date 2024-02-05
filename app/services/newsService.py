@@ -401,6 +401,37 @@ def get_news_for_newsCard(db: Session, listOfNews):
     return newsCards
 
 
+def get_oldest_news_time(news_cards: List[dict]) -> str:
+    """
+    Gets the published date of the oldest news item in the list.
+
+    Args:
+        news_cards: A list of news items, each represented as a dictionary.
+
+    Returns:
+        The published date of the oldest news item as a string.
+        If the list is empty, returns an empty string.
+    """
+    if not news_cards:
+        return ""
+
+    # No need to parse 'publishedDate' as it's already a datetime object
+    oldest_date = datetime.max  # Initialize with the maximum possible datetime
+
+    for card in news_cards:
+        # Directly compare the datetime objects
+        card_date = card['publishedDate']
+        if card_date < oldest_date:
+            oldest_date = card_date
+
+    # If no date was found (list was empty or no valid dates), return an empty string
+    if oldest_date == datetime.max:
+        return ""
+
+    # Convert the oldest date back to string if necessary
+    return oldest_date.strftime('%Y-%m-%d %H:%M:%S')
+
+
 def format_newscard(rows: List[dict]) -> List[dict]:
     if not rows:
         return []
