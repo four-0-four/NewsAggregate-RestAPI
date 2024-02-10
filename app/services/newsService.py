@@ -34,14 +34,16 @@ async def add_news_from_newsInput(db: Session, news_input: NewsInput):
     if not news_input.title or not news_input.content:
         raise HTTPException(status_code=400, detail="Title and content are required")
 
-    if len(news_input.keywords) == 0:
-        raise HTTPException(status_code=400, detail="Keywords lists cannot be empty")
+    #TODO
+    #if len(news_input.keywords) == 0:
+    #    raise HTTPException(status_code=400, detail="Keywords lists cannot be empty")
 
     if len(news_input.categories) == 0:
         raise HTTPException(status_code=400, detail="Categories lists cannot be empty")
 
-    if len(news_input.media_urls) == 0:
-        raise HTTPException(status_code=400, detail="Media URLs lists cannot be empty")
+    # TODO
+    #if len(news_input.media_urls) == 0:
+    #    raise HTTPException(status_code=400, detail="Media URLs lists cannot be empty")
 
     # check if title is unique
     existing_news = get_news_by_title(db, news_input.title)
