@@ -54,7 +54,7 @@ def fetch_news_for_corporation(corporation):
 
     # Get the current time and 12 hours ago
     current_time = datetime.now()
-    twelve_hours_ago = current_time - timedelta(hours=7)
+    twelve_hours_ago = current_time - timedelta(hours=6)
 
     if(sourceUri == None or not sourceUri):
         return []
