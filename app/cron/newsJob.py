@@ -1,6 +1,8 @@
 import requests
 import json
 from datetime import datetime, timedelta
+
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.config.database import SessionLocal
@@ -54,6 +56,9 @@ def fetch_news_for_corporation(corporation):
     current_time = datetime.now()
     twelve_hours_ago = current_time - timedelta(hours=7)
 
+    if(sourceUri == None or not sourceUri):
+        return []
+
     q = QueryArticlesIter(
         sourceUri=sourceUri,
         lang="eng",
@@ -85,12 +90,14 @@ def process_news_item(news_item, news_corporation_id):
     description = body[:50] + '...' if body else ''
 
     news_image = news_item.get('image', '')
-    if not news_image:
-        return False
 
     keywords=[]
     location_names=[]
-    categories=[]
+    categories=['all']
+    media_urls=[]
+
+    if news_image:
+        media_urls.append(news_image)
 
     # Assuming default values for language_id, isInternal, isPublished, writer_id, and category_id
     news_data = NewsInput(
@@ -103,7 +110,7 @@ def process_news_item(news_item, news_corporation_id):
         isPublished=False,
         keywords=keywords,
         locations=location_names,
-        media_urls=[news_image],
+        media_urls=media_urls,
         categories=categories,
         writer_id=None,
         newsCorporationID=news_corporation_id,
@@ -137,6 +144,8 @@ async def get_news_for_corporation_and_save(news_corporation, news_corporation_i
     local_number_of_errors = 0
 
     number_of_printed_news = 0
+
+    print(f"        LOG: Processing {len(news_list)} news items for {news_corporation}...")
     for news_item in news_list:
         news_data = process_news_item(news_item, news_corporation_id)
         if not news_data:
@@ -150,12 +159,14 @@ async def get_news_for_corporation_and_save(news_corporation, news_corporation_i
             continue
 
         #news analysis
+        '''
+        print(news_data.title)
         news_data = await extract_news_info(news_data)
         if not news_data:
             local_number_of_warnings += 1
             print(f"        WARNING: News item titled '{news_data.title}' could not be analyzed.")
             continue
-
+        '''
         try:
             response = await add_news_from_newsInput(db, news_data)
             if "message" in response and response['message'] == 'News added successfully.':
@@ -175,11 +186,20 @@ async def get_news_for_corporation_and_save(news_corporation, news_corporation_i
             else:
                 local_number_of_warnings += 1
                 print(f"        WARNING: News item titled '{news_data.title}' could not be added. Response: {response}")
+        except HTTPException as http_exc:
+            local_number_of_errors += 1
+            number_of_errors_occured += 1
+            error_detail = http_exc.detail if hasattr(http_exc, 'detail') else 'HTTP Exception without detail'
+            error_message += f"Error for {news_corporation}: {error_detail}\n"
+            print(
+                f"        ERROR: An error occurred while adding news item titled '{news_data.title}'. Error: {error_detail}")
         except Exception as e:
             local_number_of_errors += 1
             number_of_errors_occured += 1
-            error_message += f"Error for {news_corporation}: {e}\n"
-            print(f"        ERROR: An error occurred while adding news item titled '{news_data.title}'. Error: {e}")
+            error_detail = str(e) if e.args else "Unknown Error"
+            error_message += f"Error for {news_corporation}: {error_detail}\n"
+            print(
+                f"        ERROR: An error occurred while adding news item titled '{news_data.title}'. Error: {error_detail}")
 
     message += f"For {news_corporation}, {local_number_of_news_added} news were added, {local_number_of_warnings} warnings happened, {local_number_of_errors} errors happened.\n"
     print(f"        LOG: {local_number_of_news_added} news items for {news_corporation} added to the database.")
@@ -204,7 +224,10 @@ async def run_getNews_for_one_corporation(corporationName):
     db: Session = next(get_db())
     er = EventRegistry(apiKey='2084a034-acf9-46be-8c5f-26851ff83d3f')
     sourceUri = er.getSourceUri(corporationName)
-    corporation = db.query(NewsCorporations).filter(NewsCorporations.url == "https://www." + sourceUri).first()
+    if not sourceUri:
+        print(f"WARNING: News corporation {corporationName} url not found in the newsapi.ai ...")
+        return
+    corporation = db.query(NewsCorporations).filter(NewsCorporations.url == "https://www."+sourceUri).first()
     if not corporation:
         print(f"WARNING: News corporation {corporationName} not found in the database...")
         return
