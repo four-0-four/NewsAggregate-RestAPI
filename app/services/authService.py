@@ -209,8 +209,8 @@ def check_token(token_str, db, activateIt=False, expiration=3600):
         raise HTTPException(status_code=400, detail="Token expired")
 
     # Check if the token has already been used
-    if token.used or token.invalidated:
-        raise HTTPException(status_code=400, detail="Token has been used or invalidated")
+    if token.invalidated:
+        raise HTTPException(status_code=400, detail="Token has been invalidated")
 
     # Deserialize token to get the email
     serializer = URLSafeTimedSerializer(SECRET_KEY)
@@ -246,6 +246,12 @@ def confirm_token_and_activate_account(token_str, db):
 def confirm_token_and_getEmail(token_str, db, expiration=3600):
     user = check_token(token_str, db, True, expiration=expiration)
     return user.email
+
+
+def invalidate_token(token_str, db, expiration=3600):
+    token = db.query(Tokens).filter(Tokens.token == token_str).first()
+    token.invalidated = True
+    db.commit()
 
 
 def initiate_password_reset(email: str, db: db_dependency):
@@ -323,6 +329,9 @@ def change_password( response: Response, token_str: str, new_password: str, conf
     }
     access_token = create_access_token(access_data)
     refresh_token = create_refresh_token(access_data)
+
+    #invalidate token
+    invalidate_token(token_str, db)
 
     # Return the access token (logging the user in)
     return {

@@ -54,26 +54,6 @@ async def add_news_from_newsInput(db: Session, news_input: NewsInput):
     if writer_id and not validate_writer(db, writer_id):
         raise HTTPException(status_code=404, detail="Writer not found")
 
-    # Convert publishedDate from EST to UTC
-    if news_input.publishedDate:
-        # Assuming news_input.publishedDate is a naive datetime object in Eastern Time
-        eastern = pytz.timezone('America/Toronto')
-
-        # Localize the naive datetime object to Eastern Time
-        eastern_time = eastern.localize(news_input.publishedDate)
-
-        # Check if the date falls within Daylight Saving Time
-        is_dst = bool(eastern_time.dst())
-        if is_dst:
-            # If DST is in effect, convert to EDT (UTC-4)
-            utc_time = eastern_time.astimezone(pytz.timezone('UTC'))
-        else:
-            # If DST is not in effect, convert to EST (UTC-5)
-            utc_time = eastern_time.astimezone(pytz.timezone('UTC'))
-
-        # Update the publishedDate to UTC time
-        news_input.publishedDate = utc_time
-
     # adding the news to the database
     news = add_news_db(db, news_input)
 
