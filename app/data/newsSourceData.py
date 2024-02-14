@@ -10,10 +10,10 @@ async def get_all_news_sources_db() -> [dict]:
                 await cur.execute(query_stmt)
                 return await cur.fetchall()
 
-async def get_user_all_newsSource_preferences(user_id: int) -> [dict]:
+async def get_user_all_newsSource_preferences(user_id: int, preference: bool) -> [dict]:
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                query_stmt = "SELECT * FROM newsCorporations where id in (SELECT CorporationID FROM user_newsSource_preferences WHERE userID = %s AND Preference = 1)"
-                await cur.execute(query_stmt, (user_id))
+                query_stmt = "SELECT * FROM newsCorporations where id in (SELECT CorporationID FROM user_newsSource_preferences WHERE userID = %s AND Preference = %s)"
+                await cur.execute(query_stmt, (user_id, preference))
                 return await cur.fetchall()

@@ -23,7 +23,8 @@ async def get_user_news_source_preference(
         request: Request,
         user: user_dependency,
         db: db_dependency):
-    return await get_user_all_newsSource_preferences(user["id"])
+    #1 is for preference
+    return await get_user_all_newsSource_preferences(user["id"],1)
 
 
 @router.get("/get-users-blacklist")
@@ -31,4 +32,5 @@ async def get_user_news_source_blacklist(
         request: Request,
         user: user_dependency,
         db: db_dependency):
-    return True
+    #0 is for blacklist
+    return await get_user_all_newsSource_preferences(user["id"],0)
