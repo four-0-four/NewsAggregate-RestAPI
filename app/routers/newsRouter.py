@@ -65,6 +65,7 @@ async def get_news(
         db: db_dependency):
     # check if title is unique
     all_interested_news = await get_news_by_user_following(user["id"], last_news_time, number_of_articles_to_fetch * 2)
+    print(all_interested_news[:number_of_articles_to_fetch])
     formatted_newscard = format_newscard(all_interested_news[:number_of_articles_to_fetch])
     new_last_news_time = get_oldest_news_time(formatted_newscard)
     return {"news": formatted_newscard, "last_news_time": new_last_news_time, "load_more": len(all_interested_news)>number_of_articles_to_fetch}
@@ -141,7 +142,7 @@ async def get_news_by_category_id(
         user: user_dependency,
         db: db_dependency,
         keyword_id: int):
-    return get_news_by_keyword(db, keyword_id)
+    return get_news_by_keyword(db, keyword_id, 10, user["id"])
 
 
 
@@ -156,14 +157,14 @@ async def get_news_by_topid(
 
     category = await get_category_by_topic(topic)
     if category:
-        news = await get_news_by_category(category['id'], last_news_time, number_of_articles_to_fetch * 2)
+        news = await get_news_by_category(category['id'], last_news_time, number_of_articles_to_fetch * 2, user["id"])
         news_card = format_newscard(news[:number_of_articles_to_fetch])
         new_last_news_time = get_oldest_news_time(news_card)
         return {"news": news_card, "last_news_time": new_last_news_time, "load_more": len(news)>number_of_articles_to_fetch}
 
     keyword = await get_keyword(topic)
     if keyword and keyword is not None:
-        news = await get_news_by_keyword(keyword['id'], last_news_time, number_of_articles_to_fetch * 2)
+        news = await get_news_by_keyword(keyword['id'], last_news_time, number_of_articles_to_fetch * 2, user["id"])
         news_card = format_newscard(news[:number_of_articles_to_fetch])
         new_last_news_time = get_oldest_news_time(news_card)
         return {"news": news_card, "last_news_time": new_last_news_time, "load_more": len(news)>number_of_articles_to_fetch}

@@ -58,7 +58,7 @@ async def fetch_news_by_id(news_id: int) -> Optional[List[dict]]:
                 return await cur.fetchall()
 
 
-async def get_news_by_keyword(keyword_id: int, last_news_time: str, number_of_news_to_fetch: int) -> \
+async def get_news_by_keyword(keyword_id: int, last_news_time: str, number_of_news_to_fetch: int, user_id: int) -> \
 List[dict]:
     # Use current time if last_news_time is not provided
     if last_news_time is None or last_news_time == '':
@@ -77,6 +77,8 @@ List[dict]:
         LEFT JOIN newsAffiliates na ON n.id = na.news_id
         LEFT JOIN newsCorporations ncorp ON na.newsCorporation_id = ncorp.id
         WHERE nk.keyword_id = %s
+            AND (ncorp.id NOT IN (
+                   SELECT CorporationID FROM user_newsSource_preferences unp WHERE unp.userID = %s AND unp.Preference = 0))
           AND n.publishedDate < %s
         ORDER BY n.publishedDate DESC
         LIMIT %s;
@@ -85,7 +87,7 @@ List[dict]:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(query,
-                                  (keyword_id, last_news_time, number_of_news_to_fetch))
+                                  (keyword_id, user_id, last_news_time, number_of_news_to_fetch))
                 return await cur.fetchall()
 
 
@@ -108,6 +110,8 @@ async def get_news_by_user_following(user_id: int, last_news_time: Optional[str]
             LEFT JOIN newsAffiliates ON news.id = newsAffiliates.news_id
             LEFT JOIN newsCorporations ON newsAffiliates.newsCorporation_id = newsCorporations.id
             WHERE news.publishedDate < %s
+              AND (newsCorporations.id IN (
+                   SELECT CorporationID FROM user_newsSource_preferences unp WHERE unp.userID = %s AND unp.Preference = TRUE))
               AND (newsCategories.category_id IN (
                     SELECT category_id FROM user_category_following WHERE user_id = %s)
                    OR newsKeywords.keyword_id IN (
@@ -119,11 +123,11 @@ async def get_news_by_user_following(user_id: int, last_news_time: Optional[str]
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(query, (last_news_time, user_id, user_id, number_of_news_to_fetch))
+                await cur.execute(query, (last_news_time, user_id, user_id, user_id, number_of_news_to_fetch))
                 return await cur.fetchall()
 
 
-async def get_news_by_category(category_id: int, last_news_time: str, number_of_news_to_fetch: int) -> List[dict]:
+async def get_news_by_category(category_id: int, last_news_time: str, number_of_news_to_fetch: int, user_id: int) -> List[dict]:
     if last_news_time is None:
         last_news_time = datetime.now()
 
@@ -140,6 +144,8 @@ async def get_news_by_category(category_id: int, last_news_time: str, number_of_
         LEFT JOIN newsAffiliates na ON n.id = na.news_id
         LEFT JOIN newsCorporations ncorp ON na.newsCorporation_id = ncorp.id
         WHERE ncat.category_id = %s
+          AND (ncorp.id NOT IN (
+                   SELECT CorporationID FROM user_newsSource_preferences unp WHERE unp.userID = %s AND unp.Preference = 0))
           AND n.publishedDate < %s
         ORDER BY n.publishedDate DESC
         LIMIT %s;
@@ -147,7 +153,7 @@ async def get_news_by_category(category_id: int, last_news_time: str, number_of_
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(query, (category_id, last_news_time, number_of_news_to_fetch))
+                await cur.execute(query, (category_id, user_id, last_news_time, number_of_news_to_fetch))
                 return await cur.fetchall()
 
 
