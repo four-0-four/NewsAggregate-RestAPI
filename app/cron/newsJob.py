@@ -17,6 +17,24 @@ from datetime import datetime
 import os
 import asyncio
 from eventregistry import EventRegistry, QueryArticlesIter, ReturnInfo, ArticleInfoFlags, SourceInfoFlags
+import re
+from datetime import datetime
+from json import loads, JSONDecodeError
+
+def could_be_json(s):
+    try:
+        loads(s)
+        return True
+    except (ValueError, TypeError, JSONDecodeError):
+        return False
+
+
+def is_gibberish(s):
+    # Regex to find sequences of non-alphanumeric characters
+    non_alnum_seq = re.compile(r'[^a-zA-Z\d\s:]{3,}')
+    if non_alnum_seq.search(s):
+        return True
+    return False
 
 # Load environment variables
 load_dotenv()
@@ -85,6 +103,12 @@ def process_news_item(news_item, news_corporation_id):
 
     # Get the body of the news item
     body = news_item.get('body', '')
+    # Check if body is JSON-like or gibberish
+    if could_be_json(body) or is_gibberish(body):
+        body = "UNREADABLE"
+    else:
+        # If not, proceed with existing logic
+        description = body[:50] + '...' if body else ''
 
     # Summarize the body for description
     description = body[:50] + '...' if body else ''
@@ -151,6 +175,11 @@ async def get_news_for_corporation_and_save(news_corporation, news_corporation_i
         if not news_data:
             local_number_of_warnings += 1
             print(f"        WARNING: News item could not be processed for {news_corporation}.")
+            continue
+
+        if news_data.content == "UNREADABLE":
+            local_number_of_warnings += 1
+            print(f"        WARNING: News item could not be processed due to unreadable content for {news_corporation}.")
             continue
 
         if get_news_by_title(db, news_data.title) is not None:

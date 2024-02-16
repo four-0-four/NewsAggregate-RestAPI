@@ -45,7 +45,6 @@ async def get_news(
 @router.get("/getByID")
 async def get_news_byID(
         request: Request,
-        user: user_dependency,
         db: db_dependency,
         news_id: int):
     rows = await fetch_news_by_id(news_id)
@@ -65,7 +64,6 @@ async def get_news(
         db: db_dependency):
     # check if title is unique
     all_interested_news = await get_news_by_user_following(user["id"], last_news_time, number_of_articles_to_fetch * 2)
-    print(all_interested_news[:number_of_articles_to_fetch])
     formatted_newscard = format_newscard(all_interested_news[:number_of_articles_to_fetch])
     new_last_news_time = get_oldest_news_time(formatted_newscard)
     return {"news": formatted_newscard, "last_news_time": new_last_news_time, "load_more": len(all_interested_news)>number_of_articles_to_fetch}
