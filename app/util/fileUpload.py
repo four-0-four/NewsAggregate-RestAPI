@@ -12,6 +12,7 @@ async def upload_to_spaces(new_file_name: str,  file_path: str , file_extension:
     # Retrieve AWS credentials from environment variables
     aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
     aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+    FILE_BUCKET = os.getenv('FILE_BUCKET')
 
     # Check if the credentials are available
     if not aws_access_key_id or not aws_secret_access_key:
@@ -39,7 +40,7 @@ async def upload_to_spaces(new_file_name: str,  file_path: str , file_extension:
         # Remove the temporary file after uploading
         os.remove(unique_file_name)
 
-        return f"https://farabix-resources.nyc3.digitaloceanspaces.com{file_path}{new_file_name}.{file_extension}"
+        return f"{FILE_BUCKET}{file_path}{new_file_name}.{file_extension}"
     except (NoCredentialsError, ClientError) as e:
         raise UploadError(f"Error in uploading file to DigitalOcean Spaces: {e}")
 
