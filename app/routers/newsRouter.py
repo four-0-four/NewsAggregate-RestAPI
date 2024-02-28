@@ -45,7 +45,6 @@ async def get_news(
 @router.get("/getByID")
 async def get_news_byID(
         request: Request,
-        user: user_dependency,
         db: db_dependency,
         news_id: int):
     rows = await fetch_news_by_id(news_id)
@@ -141,7 +140,7 @@ async def get_news_by_category_id(
         user: user_dependency,
         db: db_dependency,
         keyword_id: int):
-    return get_news_by_keyword(db, keyword_id)
+    return get_news_by_keyword(db, keyword_id, 10, user["id"])
 
 
 
@@ -156,14 +155,14 @@ async def get_news_by_topid(
 
     category = await get_category_by_topic(topic)
     if category:
-        news = await get_news_by_category(category['id'], last_news_time, number_of_articles_to_fetch * 2)
+        news = await get_news_by_category(category['id'], last_news_time, number_of_articles_to_fetch * 2, user["id"])
         news_card = format_newscard(news[:number_of_articles_to_fetch])
         new_last_news_time = get_oldest_news_time(news_card)
         return {"news": news_card, "last_news_time": new_last_news_time, "load_more": len(news)>number_of_articles_to_fetch}
 
     keyword = await get_keyword(topic)
     if keyword and keyword is not None:
-        news = await get_news_by_keyword(keyword['id'], last_news_time, number_of_articles_to_fetch * 2)
+        news = await get_news_by_keyword(keyword['id'], last_news_time, number_of_articles_to_fetch * 2, user["id"])
         news_card = format_newscard(news[:number_of_articles_to_fetch])
         new_last_news_time = get_oldest_news_time(news_card)
         return {"news": news_card, "last_news_time": new_last_news_time, "load_more": len(news)>number_of_articles_to_fetch}
