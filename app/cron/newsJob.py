@@ -40,7 +40,7 @@ def is_gibberish(s):
 load_dotenv()
 
 # API credentials and endpoints
-newsdata_io_api_key = os.getenv('NEWS_DATA_TO_API_KEY')
+newsdata_io_api_key = 'pub_335322fdff4a6749083e621c7fb413696b162'
 
 
 number_of_news_added = 0
