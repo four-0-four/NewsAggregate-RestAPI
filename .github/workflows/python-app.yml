@@ -22,6 +22,20 @@ jobs:
       with:
         python-version: '3.10'
 
+    - name: Set environment variables  
+      run: |
+        export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+        export DATABASE_USERNAME="${{ secrets.DATABASE_USERNAME }}"
+        export DATABASE_PASSWORD="${{ secrets.DATABASE_PASSWORD }}"
+        export DATABASE_HOST="${{ secrets.DATABASE_HOST }}"
+        export DATABASE_PORT="${{ secrets.DATABASE_PORT }}"
+        export DATABASE_NAME="${{ secrets.DATABASE_NAME }}"
+        export SECRET_KEY="${{ secrets.SECRET_KEY }}"
+        export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+        export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+        export NEWS_DATA_TO_API_KEY="${{ secrets.NEWS_DATA_TO_API_KEY }}"
+        export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
+
     - name: Install libmagic
       run: |
         sudo apt-get update
@@ -32,9 +46,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: printing variable
-      run: |
-        echo ${{ os.getenv("DATABASE_URL") }}
     - name: Test with pytest
       run: |
         pytest
