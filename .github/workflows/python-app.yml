@@ -2,8 +2,7 @@ name: general tests
 
 on:
   push:
-    branches-ignore:
-      - 'main'  # Exclude 'main' here because it's covered by pull_request
+    branches: [ "main", "stage" ]
   pull_request:
     branches: [ "main" ]
 
@@ -13,7 +12,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
 
@@ -32,6 +30,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Determine Environment
+      id: set-env
+      run: |
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "::set-output name=env::production"
+        elif [[ "${{ github.ref }}" == "refs/heads/stage" ]]; then
+          echo "::set-output name=env::stage"
+        else
+          echo "::set-output name=env::unknown"
+        fi
+
+    - name: Echo Environment
+      run: echo "Running in the ${{ steps.set-env.outputs.env }} environment"
 
     - name: Test with pytest
       run: |
