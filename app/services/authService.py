@@ -20,6 +20,7 @@ from itsdangerous import URLSafeTimedSerializer
 from app.email.sendEmail import sendEmail
 
 SECRET_KEY = getenv("SECRET_KEY", "your-default-secret-key")
+BASE_URL = getenv("BASE_URL", "http://localhost:3000")
 ALGORITHM = "HS256"
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -68,7 +69,7 @@ def register_user(request: Request, response: Response, user: UserInput, db: db_
             token = generate_token(existing_user.email, db)
 
             # Send an email with the activation link (implement send_activation_email)
-            activation_link = f"http://localhost:3000/auth/ActivateAccount?token={token}"
+            activation_link = f"{BASE_URL}/auth/ActivateAccount?token={token}"
             sendEmail("Farabix Support <admin@farabix.com>", user.email, "activateAccount", activation_link)
 
             raise HTTPException(status_code=400, detail="User already exists but is not verified. An activation email has been sent. Please check your email.")
@@ -90,7 +91,7 @@ def register_user(request: Request, response: Response, user: UserInput, db: db_
     token = generate_token(new_user.email, db)
 
     # Send an email with the password reset link (implement send_reset_email)
-    reset_link = f"http://localhost:3000/auth/ActivateAccount?token={token}"
+    reset_link = f"{BASE_URL}/auth/ActivateAccount?token={token}"
     sendEmail("Farabix Support <admin@farabix.com>", user.email, "activateAccount", reset_link)
 
     return {"message": "An Email sent to your email address, please check your email to activate your account"}
@@ -265,7 +266,7 @@ def initiate_password_reset(email: str, db: db_dependency):
         token = generate_token(user.email, db)
 
         # Send an email with the activation link (implement send_activation_email)
-        activation_link = f"http://localhost:3000/auth/ActivateAccount?token={token}"
+        activation_link = f"{BASE_URL}/auth/ActivateAccount?token={token}"
         sendEmail("Farabix Support <admin@farabix.com>", user.email, "activateAccount", activation_link)
 
         return {"message": "user is not verified yet! we sent an activation email"}
@@ -275,7 +276,7 @@ def initiate_password_reset(email: str, db: db_dependency):
     reset_token = generate_token(email, db)
 
     # Send an email with the password reset link (implement send_reset_email)
-    reset_link = f"http://localhost:3000/auth/ChangePassword?token={reset_token}"
+    reset_link = f"{BASE_URL}/auth/ChangePassword?token={reset_token}"
     sendEmail("Farabix Support <admin@farabix.com>", user.email, "forgetPassword", reset_link)
 
     return {"message": "If an account with that email exists, a password reset link has been sent."}
