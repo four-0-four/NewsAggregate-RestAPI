@@ -5,7 +5,9 @@ import os
 
 # Load environment variables from .env file
 load_dotenv()
-
+print("********************************************")
+print(os.getenv("DATABASE_URL", "sqlite:///./fallback.db"))
+print("********************************************")
 conn_params = {
     "host": os.getenv("DATABASE_HOST", "localhost"),
     "port": int(os.getenv("DATABASE_PORT", "3306")),  # Convert port to integer
