@@ -16,12 +16,13 @@ class News(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(300), nullable=False)  # Title is required
-    description = Column(String(800), nullable=False)  # Description can be optional
+    shortSummary = Column(String(500), nullable=False) 
+    longSummary = Column(String(2000), nullable=False) 
     content = Column(Text, nullable=False)  # Content is required
     publishedDate = Column(DateTime(timezone=True), nullable=False)  # Published date is required
     language_id = Column(Integer, ForeignKey('languages.id'), nullable=False)
     isInternal = Column(Boolean, nullable=False, default=True)  # Default to True
-    isPublished = Column(Boolean, nullable=False, default=False)  # Default to False
+    ProcessedForIdentity = Column(Boolean, nullable=False, default=False)  # Default to False
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -135,12 +136,13 @@ class NewsMedia(Base):
 class NewsInput(BaseModel):
 
     title: str
-    description: Optional[str] = None
+    shortSummary: Optional[str] = None
+    longSummary: Optional[str] = None
     content: str
     publishedDate: datetime
     language_id: int
     isInternal: bool = False
-    isPublished: bool = False
+    ProcessedForIdentity: bool = False
     writer_id: Optional[str]  # ID of the writer
     keywords: List[str]  # List of keyword IDs
     locations: List[str]
@@ -152,6 +154,3 @@ class NewsInput(BaseModel):
     class Config:
         from_attributes = True
 
-
-class NewsDescription(BaseModel):
-    description: str

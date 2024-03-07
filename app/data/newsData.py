@@ -42,7 +42,8 @@ async def fetch_news_by_id(news_id: int) -> Optional[List[dict]]:
                         k.name as keyword_name,
                         m.fileName, 
                         ncorp.name as corporation_name,  # Changed alias to 'ncorp'
-                        ncorp.logo
+                        ncorp.logo,
+                        na.externalLink
                     FROM news n
                     LEFT JOIN newsCategories ncat ON n.id = ncat.news_id  # Changed alias to 'ncat'
                     LEFT JOIN categories c ON ncat.category_id = c.id

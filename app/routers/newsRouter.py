@@ -2,7 +2,7 @@ from fastapi import Request
 from app.config.dependencies import db_dependency
 from app.data.newsData import fetch_news_by_id, get_category_by_topic, get_keyword, \
     get_news_by_keyword, get_news_by_category, get_news_by_user_following
-from app.models.news import NewsInput, NewsDescription
+from app.models.news import NewsInput
 from fastapi import HTTPException, Path, APIRouter, Depends
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -121,16 +121,6 @@ async def delete_news(
         raise HTTPException(status_code=409, detail="News does not exists")
 
     return {"message": "News deleted successfully.", "news_id": existing_news.id}
-
-
-@router.get("/acquireKeywords")
-async def acquire_keywords(
-        request: Request,
-        user: user_dependency,
-        db: db_dependency,
-        newsDescription: NewsDescription):
-
-    return extract_keywords(newsDescription.description)
 
 
 

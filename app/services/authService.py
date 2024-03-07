@@ -6,6 +6,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from app.data.newsSourceData import insert_default_news_sources_for_user
 
 from app.models.common import Tokens
 from app.models.user import DeleteUserInput, User, UserInput
@@ -56,7 +57,7 @@ def generate_random_username():
     return f"{keyword}_{random_number}"
 
 
-def register_user(request: Request, response: Response, user: UserInput, db: db_dependency):
+async def register_user(request: Request, response: Response, user: UserInput, db: db_dependency):
     # Password Confirmation Check
     if user.password != user.confirmPassword:
         raise HTTPException(status_code=400, detail="Passwords do not match")
@@ -86,6 +87,9 @@ def register_user(request: Request, response: Response, user: UserInput, db: db_
         raise HTTPException(status_code=400, detail="Username already in use")
 
     new_user = add_user_to_db(user, db)
+    
+    #add default news sources for user
+    await insert_default_news_sources_for_user(new_user.id)
 
     # Generate a password reset token (you need to implement this)
     token = generate_token(new_user.email, db)
@@ -95,6 +99,7 @@ def register_user(request: Request, response: Response, user: UserInput, db: db_
     sendEmail("Farabix Support <admin@farabix.com>", user.email, "activateAccount", reset_link)
 
     return {"message": "An Email sent to your email address, please check your email to activate your account"}
+
 
 def get_loggedin_user(request: Request, db: db_dependency):
     # Extract the token from the request headers

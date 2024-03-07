@@ -123,15 +123,16 @@ def process_news_item(news_item, news_corporation_id):
     if news_image:
         media_urls.append(news_image)
 
-    # Assuming default values for language_id, isInternal, isPublished, writer_id, and category_id
+    
     news_data = NewsInput(
         title=news_item.get('title', ''),
-        description=description,
+        shortSummary=description,
+        longSummary=description,
         content=body,
         publishedDate=pub_date,
         language_id=16,
         isInternal=False,
-        isPublished=False,
+        ProcessedForIdentity=False,
         keywords=keywords,
         locations=location_names,
         media_urls=media_urls,
