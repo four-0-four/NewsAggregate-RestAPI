@@ -31,7 +31,7 @@ async def create_user(
     user: UserInput,
     db: Session = Depends(get_db)
 ):
-    return register_user(request, response, user, db)
+    return await register_user(request, response, user, db)
 
 
 @router.post("/user/confirm-registration")

@@ -1,6 +1,7 @@
 import os
 
 from fastapi import APIRouter, Depends, Request, UploadFile, File, Form, Path
+from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from typing import Annotated, Optional, List
@@ -222,6 +223,50 @@ async def add_following(
         return {"message": "Keyword following added successfully", "topic": topic}
 
     raise HTTPException(status_code=404, detail="Topic not found")
+
+
+# Define a Pydantic model for your request body
+class TopicsModel(BaseModel):
+    topics: List[str]
+
+@router.post("/add-followings")
+async def add_following(
+        request_body: TopicsModel,  # Accept a list of topics instead of a single topic
+        request: Request,
+        user: user_dependency,
+        db: db_dependency):
+    topics = request_body.topics
+    added_topics = []  # To keep track of successfully added topics
+    not_found_topics = []  # To keep track of topics that were not found
+
+    for topic in topics:
+        # Check if it's a category
+        category = await get_category_by_topic(topic)
+        if category:
+            create_category_following(db, user["id"], category["id"])
+            added_topics.append(topic)
+            continue  # Move to the next topic
+
+        # Check if it's a keyword
+        keyword = await get_keyword(topic)
+        if keyword:
+            create_keyword_following(db, user["id"], keyword["id"])
+            added_topics.append(topic)
+            continue  # Move to the next topic
+
+        # If the topic is not found as either a category or a keyword
+        not_found_topics.append(topic)
+
+    if not added_topics:
+        # If no topics were successfully added
+        raise HTTPException(status_code=404, detail="No valid topics found")
+    else:
+        return {
+            "message": "Following added successfully for topics",
+            "added_topics": added_topics,
+            "not_found_topics": not_found_topics
+        }
+
 
 @router.post("/remove-following")
 async def remove_following(

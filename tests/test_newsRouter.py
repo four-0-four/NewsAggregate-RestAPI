@@ -29,12 +29,13 @@ def test_add_news_empty_title():
     # Arrange with empty title and valid content
     news_input = NewsInput(
         title="",
-        description="Test Description",
+        shortSummary="Test short summary",
+        longSummary="Test long summary",
         content="This is a test content for the news.",
         publishedDate=datetime.now().isoformat(),  # Convert to string
         language_id=1,
         isInternal=False,
-        isPublished=True,
+        ProcessedForIdentity=True,
         keywords=["test", "news", "pytest"],
         locations=["Sample Location"],  # Add a valid location
         newsCorporationID=16,  # Add a valid news corporation ID
@@ -66,12 +67,13 @@ def test_add_news_empty_content():
     # Arrange with empty title and valid content
     news_input = NewsInput(
         title="this is just a test to check everything overall",
-        description="Test Description",
+        shortSummary="Test short summary",
+        longSummary="Test long summary",
         content="",
         publishedDate=datetime.now().isoformat(),  # Convert to string
         language_id=1,
         isInternal=False,
-        isPublished=True,
+        ProcessedForIdentity=True,
         keywords=["test", "news", "pytest"],
         locations=["Sample Location"],  # Add a valid location
         newsCorporationID=123,  # Add a valid news corporation ID
@@ -107,12 +109,13 @@ def test_add_news_db():
     global title
     news_input = NewsInput(
         title=title,
-        description="Test Description",
+        shortSummary="Test short summary",
+        longSummary="Test long summary",
         content="This is a test content for the news.",
         publishedDate=datetime.now().isoformat(),  # Convert to string
         language_id=1,
         isInternal=False,
-        isPublished=True,
+        ProcessedForIdentity=True,
         keywords=["test", "news", "pytest"],
         locations=["Sample Location"],  # Add a valid location
         newsCorporationID=16,  # Add a valid news corporation ID
@@ -147,12 +150,13 @@ def test_add_news_empty_categories():
     # Arrange with empty title and valid content
     news_input = NewsInput(
         title="this is just a test to check everything overall",
-        description="Test Description",
+        shortSummary="Test short summary",
+        longSummary="Test long summary",
         content="This is a test content for the news.",
         publishedDate=datetime.now().isoformat(),  # Convert to string
         language_id=1,
         isInternal=False,
-        isPublished=True,
+        ProcessedForIdentity=True,
         keywords=["sample"],
         locations=["Sample Location"],  # Add a valid location
         newsCorporationID=123,  # Add a valid news corporation ID

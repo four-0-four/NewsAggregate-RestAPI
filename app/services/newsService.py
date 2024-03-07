@@ -141,12 +141,13 @@ def add_news_db(db: Session, news_input: NewsInput):
     # Create a new News instance from the NewsInput data
     news = News(
         title=news_input.title,
-        description=news_input.description,
+        shortSummary=news_input.shortSummary,
+        longSummary=news_input.longSummary,
         content=news_input.content,
         publishedDate=news_input.publishedDate,
         language_id=news_input.language_id,
         isInternal=news_input.isInternal,
-        isPublished=news_input.isPublished
+        ProcessedForIdentity=news_input.ProcessedForIdentity
     )
 
     # Add the news instance to the session
@@ -329,12 +330,13 @@ def get_news_information(db: Session, news_id: int):
         newsCard = {
             "id": news.id,
             "title": news.title,
-            "description": news.description,
+            "shortSummary": news.shortSummary,
+            "longSummary": news.longSummary,
             "content": news.content,
             "publishedDate": news.publishedDate,
             "language_id": news.language_id,
             "isInternal": news.isInternal,
-            "isPublished": news.isPublished,
+            "ProcessedForIdentity": news.ProcessedForIdentity,
             "createdAt": news.createdAt,
             "updatedAt": news.updatedAt,
             "categories": [],
