@@ -9,16 +9,16 @@ from typing import Annotated, Optional, List
 from starlette.exceptions import HTTPException
 
 from app.config.dependencies import db_dependency
-from app.data.newsData import get_category_by_topic, get_keyword
+from app.data.newsData import get_category_by_topic, get_entity
 from app.data.userData import check_username_in_db, update_username_in_db, update_first_name_in_db, \
     update_last_name_in_db, get_user_by_id
 from app.email.sendEmail import sendEmail, sendEmailInternal, sendEmailWithMultipleAttachments
 from app.models.user import ContactUsInput, reportBugInput, UsernameCheckInput, UpdateProfileInput, ChangePasswordInput, \
     ChangePasswordInputProfile
 from app.services.authService import get_current_user
-from app.services.commonService import get_category_by_id, get_keyword_byID
-from app.services.userService import create_category_following, create_keyword_following, get_all_keyword_following, \
-    get_all_category_following, remove_category_following, remove_keyword_following,  \
+from app.services.commonService import get_category_by_id, get_entity_byID
+from app.services.userService import create_category_following, create_entity_following, get_all_entity_following, \
+    get_all_category_following, remove_category_following, remove_entity_following,  \
     change_password_profile
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -76,10 +76,10 @@ async def get_followings(
         user: user_dependency,
         db: db_dependency):
     all_followings = []
-    keyword_followings = get_all_keyword_following(db, user["id"])
+    entity_followings = get_all_entity_following(db, user["id"])
     category_followings = get_all_category_following(db, user["id"])
 
-    all_followings.extend(keyword_followings)
+    all_followings.extend(entity_followings)
     all_followings.extend(category_followings)
     return all_followings
 
@@ -102,21 +102,21 @@ async def add_following_category(
 
 
 
-@router.post("/add-following/keyword")
-async def add_following_keyword(
+@router.post("/add-following/entity")
+async def add_following_entity(
         request: Request,
         user: user_dependency,
         db: db_dependency,
-        keyword_id: int):
-    # check if keyword exists
-    keyword = get_keyword_byID(db, keyword_id)
-    if not keyword:
-        raise HTTPException(status_code=404, detail="Keyword not found")
+        entity_id: int):
+    # check if entity exists
+    entity = get_entity_byID(db, entity_id)
+    if not entity:
+        raise HTTPException(status_code=404, detail="entity not found")
 
     # add it to the following table and get the created entity
-    following_entity = create_keyword_following(db, user["id"], keyword_id)
+    following_entity = create_entity_following(db, user["id"], entity_id)
 
-    return {"message": "Keyword following added successfully", "following": following_entity}
+    return {"message": "entity following added successfully", "following": following_entity}
 
 
 @router.post("/contactUs")
@@ -216,11 +216,11 @@ async def add_following(
         following_entity = create_category_following(db, user["id"], category["id"])
         return {"message": "Category following added successfully", "topic": topic}
 
-    # Check if it's a keyword
-    keyword = await get_keyword(topic)
-    if keyword:
-        following_entity = create_keyword_following(db, user["id"], keyword["id"])
-        return {"message": "Keyword following added successfully", "topic": topic}
+    # Check if it's a entity
+    entity = await get_entity(topic)
+    if entity:
+        following_entity = create_entity_following(db, user["id"], entity["id"])
+        return {"message": "entity following added successfully", "topic": topic}
 
     raise HTTPException(status_code=404, detail="Topic not found")
 
@@ -247,14 +247,14 @@ async def add_following(
             added_topics.append(topic)
             continue  # Move to the next topic
 
-        # Check if it's a keyword
-        keyword = await get_keyword(topic)
-        if keyword:
-            create_keyword_following(db, user["id"], keyword["id"])
+        # Check if it's a entity
+        entity = await get_entity(topic)
+        if entity:
+            create_entity_following(db, user["id"], entity["id"])
             added_topics.append(topic)
             continue  # Move to the next topic
 
-        # If the topic is not found as either a category or a keyword
+        # If the topic is not found as either a category or a entity
         not_found_topics.append(topic)
 
     if not added_topics:
@@ -280,10 +280,10 @@ async def remove_following(
         remove_category_following(db, user["id"], category["id"])
         return {"message": "Category following removed successfully", "topic": topic}
 
-    # Check if it's a keyword and if the user is following it
-    keyword = await get_keyword(topic)
-    if keyword:
-        remove_keyword_following(db, user["id"], keyword["id"])
-        return {"message": "Keyword following removed successfully", "topic": topic}
+    # Check if it's a entity and if the user is following it
+    entity = await get_entity(topic)
+    if entity:
+        remove_entity_following(db, user["id"], entity["id"])
+        return {"message": "entity following removed successfully", "topic": topic}
 
     raise HTTPException(status_code=404, detail="Topic not found")

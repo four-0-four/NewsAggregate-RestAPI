@@ -8,7 +8,7 @@
     "isInternal": false,
     "ProcessedForIdentity": false,
     "writer_id": null,
-    "keywords": [
+    "entities": [
       "Ana de Armas",
       "Jannik Sinner",
       "Jim Courier",
@@ -46,7 +46,7 @@
     "isInternal": false,
     "ProcessedForIdentity": false,
     "writer_id": null,
-    "keywords": [
+    "entities": [
       "David Jason",
       "Only Fools and Horses",
       "Hollywood",
@@ -79,7 +79,7 @@
     "isInternal": false,
     "ProcessedForIdentity": false,
     "writer_id": null,
-    "keywords": [
+    "entities": [
       "Paramount+",
       "streaming service",
       "football game",
@@ -105,7 +105,7 @@
     "isInternal": false,
     "ProcessedForIdentity": false,
     "writer_id": null,
-    "keywords": [
+    "entities": [
       "Melania Trump",
       "Donald Trump",
       "Barron Trump"
@@ -132,7 +132,7 @@
     "isInternal": false,
     "ProcessedForIdentity": false,
     "writer_id": null,
-    "keywords": [
+    "entities": [
       "Rylan Clark",
       "Linda",
       "Spain"
@@ -158,7 +158,7 @@
     "isInternal": false,
     "ProcessedForIdentity": false,
     "writer_id": null,
-    "keywords": [
+    "entities": [
       "sleepers",
       "love"
     ],
@@ -181,7 +181,7 @@
     "isInternal": false,
     "ProcessedForIdentity": false,
     "writer_id": null,
-    "keywords": [
+    "entities": [
       "Jeremy Renner",
       "snowplough accident",
       "life",
@@ -210,7 +210,7 @@
     "isInternal": false,
     "ProcessedForIdentity": false,
     "writer_id": null,
-    "keywords": [
+    "entities": [
       "Taylor Swift",
       "Travis Kelce",
       "Kansas City Chiefs",
@@ -239,7 +239,7 @@
     "isInternal": false,
     "ProcessedForIdentity": false,
     "writer_id": null,
-    "keywords": [
+    "entities": [
       "Travis Kelce",
       "Justin Tucker",
       "Patrick Mahomes",

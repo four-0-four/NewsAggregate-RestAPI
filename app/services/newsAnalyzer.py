@@ -7,7 +7,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 nltk.download('punkt')
 nltk.download('wordnet')
 
-def extract_keywords(text, top_n=20):
+def extract_entities(text, top_n=20):
     # Tokenize and lemmatize the text
     lemmatizer = WordNetLemmatizer()
     tokens = word_tokenize(text)
@@ -25,5 +25,5 @@ def extract_keywords(text, top_n=20):
     # Sort words based on TF-IDF scores
     sorted_words = sorted(tfidf_scores, key=lambda x: x[1], reverse=True)
 
-    # Select top N keywords
+    # Select top N entities
     return [word for word, score in sorted_words][:top_n]

@@ -4,7 +4,7 @@ import os
 import re
 
 # app/controllers/auth_controller.py
-from app.models.common import Media, Keyword, Category
+from app.models.common import Media, entity, Category
 from app.services.categoryService import create_news_category
 
 
@@ -71,15 +71,15 @@ def save_media(db: Session, file_name: str, file_type: str, file_extension: str)
     return new_media
 
 
-def add_keyword(db: Session, keyword: str):
-    new_keyword = Keyword(name=keyword)
-    db.add(new_keyword)
+def add_entity(db: Session, entity: str):
+    new_entity = entity(name=entity)
+    db.add(new_entity)
     db.commit()
-    return new_keyword
+    return new_entity
 
-def get_keyword_byID(db: Session, keyword_id: int):
-    keyword = db.query(Keyword).filter(Keyword.id == keyword_id).first()
-    return keyword
+def get_entity_byID(db: Session, entity_id: int):
+    entity = db.query(entity).filter(entity.id == entity_id).first()
+    return entity
 
 
 def get_category_by_id(db: Session, category_id:int):

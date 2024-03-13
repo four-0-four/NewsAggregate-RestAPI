@@ -2,15 +2,15 @@ from datetime import timedelta, datetime
 
 from sqlalchemy import func, and_
 
-from app.data.newsData import get_keyword, add_keyword
-from app.models.common import Media, Keyword, NewsCorporations, Category
-from app.models.user import UserCategoryFollowing, UserKeywordFollowing
+from app.data.newsData import get_entity, add_entity
+from app.models.common import Media, entity, NewsCorporations, Category
+from app.models.user import UserCategoryFollowing, UserentityFollowing
 from app.models.writer import Writer
 from sqlalchemy.orm import Session, joinedload, subqueryload
 from app.models.news import (
     NewsLocation,
     NewsCategory,
-    NewsKeywords,
+    Newsentities,
     NewsAffiliates,
     NewsMedia,
 )
@@ -35,8 +35,8 @@ async def add_news_from_newsInput(db: Session, news_input: NewsInput):
         raise HTTPException(status_code=400, detail="Title and content are required")
 
     #TODO
-    #if len(news_input.keywords) == 0:
-    #    raise HTTPException(status_code=400, detail="Keywords lists cannot be empty")
+    #if len(news_input.entities) == 0:
+    #    raise HTTPException(status_code=400, detail="entities lists cannot be empty")
 
     if len(news_input.categories) == 0:
         raise HTTPException(status_code=400, detail="Categories lists cannot be empty")
@@ -57,17 +57,17 @@ async def add_news_from_newsInput(db: Session, news_input: NewsInput):
     # adding the news to the database
     news = add_news_db(db, news_input)
 
-    # adding keywords to the the database if not exists
-    for keyword in news_input.keywords:
-        # Check if the keyword exists
-        existing_keyword = await get_keyword(keyword)
-        if not existing_keyword:
-            # Add the keyword if it does not exist
-            await add_keyword(keyword)
-            existing_keyword = await get_keyword(keyword)
+    # adding entities to the the database if not exists
+    for entity in news_input.entities:
+        # Check if the entity exists
+        existing_entity = await get_entity(entity)
+        if not existing_entity:
+            # Add the entity if it does not exist
+            await add_entity(entity)
+            existing_entity = await get_entity(entity)
 
-        # Add the keyword to the newsKeywords table
-        newsKeyword = create_news_keyword(db, news.id, existing_keyword["id"])
+        # Add the entity to the newsEntities table
+        newsentity = create_news_entity(db, news.id, existing_entity["id"])
 
     # processing the categories and adding them to the database of both news and categories if not exists
     for category in news_input.categories:
@@ -76,10 +76,10 @@ async def add_news_from_newsInput(db: Session, news_input: NewsInput):
 
     # adding media url
     for media_url in news_input.media_urls:
-        # Check if the keyword exists
+        # Check if the entity exists
         existing_media = get_media_by_url(db, media_url, news_input.isInternal)
         if not existing_media:
-            # Add the keyword if it does not exist
+            # Add the entity if it does not exist
             existing_media = add_media_by_url_to_db(db, media_url, news_input.isInternal)
 
         newsCategory = create_news_media(db, news.id, existing_media.id)
@@ -174,8 +174,8 @@ def delete_news_by_title(db: Session, news_title: str):
         # Delete associated NewsCategories
         db.query(NewsCategory).filter(NewsCategory.news_id == news.id).delete()
 
-        # Delete associated NewsKeywords
-        db.query(NewsKeywords).filter(NewsKeywords.news_id == news.id).delete()
+        # Delete associated Newsentities
+        db.query(Newsentities).filter(Newsentities.news_id == news.id).delete()
 
         # Delete associated NewsMedia
         db.query(NewsMedia).filter(NewsMedia.news_id == news.id).delete()
@@ -194,21 +194,21 @@ def delete_news_by_title(db: Session, news_title: str):
     return None
 
 
-def create_news_keyword(db: Session, news_id: int, keyword_id: int):
-    news_keyword = get_news_keyword(db, news_id, keyword_id)
-    if not news_keyword:
-        news_keyword = NewsKeywords(news_id=news_id, keyword_id=keyword_id)
-        db.add(news_keyword)
+def create_news_entity(db: Session, news_id: int, entity_id: int):
+    news_entity = get_news_entity(db, news_id, entity_id)
+    if not news_entity:
+        news_entity = Newsentities(news_id=news_id, entity_id=entity_id)
+        db.add(news_entity)
         db.commit()
-        db.refresh(news_keyword)
-        return news_keyword
-    return news_keyword
+        db.refresh(news_entity)
+        return news_entity
+    return news_entity
 
 
-def get_news_keyword(db: Session, news_id: int, keyword_id: int):
+def get_news_entity(db: Session, news_id: int, entity_id: int):
     return (
-        db.query(NewsKeywords)
-        .filter(NewsKeywords.news_id == news_id, NewsKeywords.keyword_id == keyword_id)
+        db.query(Newsentities)
+        .filter(Newsentities.news_id == news_id, Newsentities.entity_id == entity_id)
         .first()
     )
 
@@ -243,13 +243,13 @@ def get_news_for_video(db: Session, category_id: int, hours: int = 12):
         db.query(
             News.title,
             Media.fileName,
-            func.group_concat(Keyword.name).label('keywords')
+            func.group_concat(entity.name).label('entities')
         )
         .join(NewsCategory, NewsCategory.news_id == News.id)
         .join(NewsMedia, NewsMedia.news_id == News.id)
         .join(Media, NewsMedia.media_id == Media.id)
-        .join(NewsKeywords, NewsKeywords.news_id == News.id)
-        .join(Keyword, NewsKeywords.keyword_id == Keyword.id)
+        .join(Newsentities, Newsentities.news_id == News.id)
+        .join(entity, Newsentities.entity_id == entity.id)
         .filter(NewsCategory.category_id == category_id)
         .filter(News.publishedDate >= time_threshold)
         .group_by(News.id, Media.fileName)
@@ -258,8 +258,8 @@ def get_news_for_video(db: Session, category_id: int, hours: int = 12):
 
     # Format the results as a list of dictionaries
     news_with_media = [
-        {"title": title, "url": url, "keywords": keywords.split(',')}
-        for title, url, keywords in result
+        {"title": title, "url": url, "entities": entities.split(',')}
+        for title, url, entities in result
     ]
 
     return news_with_media
@@ -295,7 +295,7 @@ def get_news_by_user_following(db: Session, user_id: int, hours_ago: int = 24, p
     # Calculate the offset (number of records to skip)
     offset = (page - 1) * page_size
 
-    # Combined query for categories and keywords with eager loading for related entities
+    # Combined query for categories and entities with eager loading for related entities
     query = (
         db.query(News)
         .filter(News.publishedDate >= datetime_hours_ago)
@@ -304,14 +304,14 @@ def get_news_by_user_following(db: Session, user_id: int, hours_ago: int = 24, p
               and_(UserCategoryFollowing.category_id == NewsCategory.category_id,
                    UserCategoryFollowing.user_id == user_id),
               isouter=True)
-        .join(NewsKeywords, NewsKeywords.news_id == News.id, isouter=True)
-        .join(UserKeywordFollowing,
-              and_(UserKeywordFollowing.keyword_id == NewsKeywords.keyword_id,
-                   UserKeywordFollowing.user_id == user_id),
+        .join(Newsentities, Newsentities.news_id == News.id, isouter=True)
+        .join(UserentityFollowing,
+              and_(UserentityFollowing.entity_id == Newsentities.entity_id,
+                   UserentityFollowing.user_id == user_id),
               isouter=True)
         .options(
             joinedload(News.categories),
-            joinedload(News.keywords),
+            joinedload(News.entities),
             joinedload(News.media),
             subqueryload(News.affiliates)
         )
@@ -340,7 +340,7 @@ def get_news_information(db: Session, news_id: int):
             "createdAt": news.createdAt,
             "updatedAt": news.updatedAt,
             "categories": [],
-            "keywords": [],
+            "entities": [],
             "media": [],
             "from": "",
             "fromImage": ""
@@ -352,11 +352,11 @@ def get_news_information(db: Session, news_id: int):
         ).filter(NewsCategory.news_id == news.id).all()
         newsCard["categories"] = [category.name for category in categories_of_news]
 
-        # Get the keywords
-        keywords_of_news = db.query(Keyword).join(
-            NewsKeywords, NewsKeywords.keyword_id == Keyword.id
-        ).filter(NewsKeywords.news_id == news.id).all()
-        newsCard["keywords"] = [keyword.name for keyword in keywords_of_news]
+        # Get the entities
+        entities_of_news = db.query(entity).join(
+            Newsentities, Newsentities.entity_id == entity.id
+        ).filter(Newsentities.news_id == news.id).all()
+        newsCard["entities"] = [entity.name for entity in entities_of_news]
 
         # Get the media
         media_of_news = db.query(Media).join(
@@ -431,9 +431,9 @@ def format_newscard(rows: List[dict]) -> List[dict]:
                 final_output.append(current_news)
 
             current_news = {k: v for k, v in row.items() if
-                            k not in ['category_name', 'keyword_name', 'fileName', 'corporation_name', 'logo']}
+                            k not in ['category_name', 'entity_name', 'fileName', 'corporation_name', 'logo']}
 
-            # Initialize sets for categories, keywords, and media to avoid duplicates
+            # Initialize sets for categories, entities, and media to avoid duplicates
             current_news['media'] = {row['fileName']}
 
             # Handle affiliate (news corporation) data

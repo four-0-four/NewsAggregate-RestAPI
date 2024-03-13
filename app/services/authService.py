@@ -52,9 +52,9 @@ def delete_user_func(
 
 def generate_random_username():
     """Generate a random username for a journalist with enhanced randomness."""
-    keyword = "anonymous"
+    entity = "anonymous"
     random_number = random.randint(1, 99999999)  # Expanded range for greater randomness
-    return f"{keyword}_{random_number}"
+    return f"{entity}_{random_number}"
 
 
 async def register_user(request: Request, response: Response, user: UserInput, db: db_dependency):

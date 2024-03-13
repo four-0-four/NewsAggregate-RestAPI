@@ -2,8 +2,8 @@ from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException
 
 from app.data.userData import verify_old_password, update_user_password, get_user_by_id
-from app.models.common import Keyword, Category
-from app.models.user import UserCategoryFollowing, UserKeywordFollowing
+from app.models.common import entity, Category
+from app.models.user import UserCategoryFollowing, UserentityFollowing
 from app.services.authService import create_access_token, create_refresh_token, user_to_json, new_user_to_json
 
 
@@ -40,46 +40,46 @@ def create_category_following(db: Session, user_id: int, category_id: int):
     return category_following
 
 
-def get_all_keyword_following(db: Session, user_id: int):
-    userKeywordFollowing = (
-        db.query(UserKeywordFollowing)
-        .filter(UserKeywordFollowing.user_id == user_id)
+def get_all_entity_following(db: Session, user_id: int):
+    userentityFollowing = (
+        db.query(UserentityFollowing)
+        .filter(UserentityFollowing.user_id == user_id)
         .all()
     )
 
-    keywordStrings = []
-    for userKeyword in userKeywordFollowing:
-        keyword = db.query(Keyword).filter(Keyword.id == userKeyword.keyword_id).first()
-        keywordStrings.append(keyword.name)
+    entitiestrings = []
+    for userentity in userentityFollowing:
+        entity = db.query(entity).filter(entity.id == userentity.entity_id).first()
+        entitiestrings.append(entity.name)
 
-    return keywordStrings
+    return entitiestrings
 
 
-def get_keyword_following(db: Session, user_id: int, keyword_id: int):
+def get_entity_following(db: Session, user_id: int, entity_id: int):
     return (
-        db.query(UserKeywordFollowing)
-        .filter(UserKeywordFollowing.user_id == user_id, UserKeywordFollowing.keyword_id == keyword_id)
+        db.query(UserentityFollowing)
+        .filter(UserentityFollowing.user_id == user_id, UserentityFollowing.entity_id == entity_id)
         .first()
     )
 
 
-def create_keyword_following(db: Session, user_id: int, keyword_id: int):
-    keyword_following = get_keyword_following(db, user_id, keyword_id)
-    if not keyword_following:
-        keyword_following = UserKeywordFollowing(user_id=user_id, keyword_id=keyword_id)
-        db.add(keyword_following)
+def create_entity_following(db: Session, user_id: int, entity_id: int):
+    entity_following = get_entity_following(db, user_id, entity_id)
+    if not entity_following:
+        entity_following = UserentityFollowing(user_id=user_id, entity_id=entity_id)
+        db.add(entity_following)
         db.commit()
-        db.refresh(keyword_following)
-    return keyword_following
+        db.refresh(entity_following)
+    return entity_following
 
 
-def remove_keyword_following(db: Session, user_id: int, keyword_id: int):
-    keyword_following = get_keyword_following(db, user_id, keyword_id)
-    if keyword_following:
-        db.delete(keyword_following)
+def remove_entity_following(db: Session, user_id: int, entity_id: int):
+    entity_following = get_entity_following(db, user_id, entity_id)
+    if entity_following:
+        db.delete(entity_following)
         db.commit()
     else:
-        raise HTTPException(status_code=404, detail="Keyword following not found")
+        raise HTTPException(status_code=404, detail="entity following not found")
 
 
 def remove_category_following(db: Session, user_id: int, category_id: int):
