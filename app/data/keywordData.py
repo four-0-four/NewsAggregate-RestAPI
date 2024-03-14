@@ -3,20 +3,20 @@ import aiomysql
 from app.config.database import conn_params
 
 
-async def find_similar_keywords(input_keyword):
-    similar_keywords = []
+async def find_similar_entities(input_entity):
+    similar_entities = []
 
-    # Breaking down the input keyword for better accuracy
-    combined_keywords = set()  # Using a set to automatically handle duplicates
+    # Breaking down the input entity for better accuracy
+    combined_entities = set()  # Using a set to automatically handle duplicates
 
-    for keyword in input_keyword:
-        # Split each keyword into words, convert to lowercase, and add to the set
-        combined_keywords.update(word.lower() for word in keyword.split())
+    for entity in input_entity:
+        # Split each entity into words, convert to lowercase, and add to the set
+        combined_entities.update(word.lower() for word in entity.split())
    
-    search_terms = list(combined_keywords)
+    search_terms = list(combined_entities)
     
     # SQL Query
-    query = "SELECT name FROM keywords WHERE name LIKE %s"
+    query = "SELECT name FROM entities WHERE name LIKE %s"
 
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
@@ -26,7 +26,7 @@ async def find_similar_keywords(input_keyword):
                     await cur.execute(query, (like_term,))
                     results = await cur.fetchall()
                     for result in results:
-                        if result[0] not in similar_keywords:
-                            similar_keywords.append(result[0])
+                        if result[0] not in similar_entities:
+                            similar_entities.append(result[0])
 
-    return similar_keywords
+    return similar_entities

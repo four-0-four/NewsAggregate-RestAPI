@@ -30,8 +30,8 @@ class News(Base):
     locations = relationship("NewsLocation", back_populates="news")
     # Define a relationship with NewsCategory
     categories = relationship("NewsCategory", back_populates="news")
-    # Define a relationship with NewsKeywords
-    keywords = relationship("NewsKeywords", back_populates="news")
+    # Define a relationship with Newsentities
+    entities = relationship("Newsentities", back_populates="news")
     # Define a relationship with NewsAffiliates
     affiliates = relationship("NewsAffiliates", back_populates="news")
     # Define a relationship with NewsMedia
@@ -70,25 +70,25 @@ class NewsCategory(Base):
     # Define a relationship with News
     news = relationship("News", back_populates="categories")
 
-# Define the NewsKeywords table for storing keywords associated with news articles
-class NewsKeywords(Base):
+# Define the Newsentities table for storing entities associated with news articles
+class Newsentities(Base):
     """
-    Table to store keywords associated with news articles.
+    Table to store entities associated with news articles.
     """
-    __tablename__ = "newsKeywords"
+    __tablename__ = "newsEntities"
 
     news_id = Column(Integer, ForeignKey('news.id'), primary_key=True)
-    keyword_id = Column(Integer, ForeignKey('keywords.id'), primary_key=True)
+    entity_id = Column(Integer, ForeignKey('entities.id'), primary_key=True)
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Define a relationship with News
-    news = relationship("News", back_populates="keywords")
+    news = relationship("News", back_populates="entities")
 
 # Define the newswriters table
 class NewsWriters(Base):
     """
-    Table to store keywords associated with news articles.
+    Table to store entities associated with news articles.
     """
     __tablename__ = "newsWriters"
 
@@ -144,7 +144,7 @@ class NewsInput(BaseModel):
     isInternal: bool = False
     ProcessedForIdentity: bool = False
     writer_id: Optional[str]  # ID of the writer
-    keywords: List[str]  # List of keyword IDs
+    entities: List[str]  # List of entity IDs
     locations: List[str]
     categories: List[str]
     media_urls: Optional[List[str]]

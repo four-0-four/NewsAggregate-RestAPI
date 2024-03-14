@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.config.database import SessionLocal
-from app.data.keywordData import find_similar_keywords
+from app.data.entityData import find_similar_entities
 from app.email.sendEmail import sendEmailInternal
 from app.models.common import NewsCorporations
 from app.models.news import NewsInput
@@ -115,7 +115,7 @@ def process_news_item(news_item, news_corporation_id):
 
     news_image = news_item.get('image', '')
 
-    keywords=[]
+    entities=[]
     location_names=[]
     categories=['all']
     media_urls=[]
@@ -133,7 +133,7 @@ def process_news_item(news_item, news_corporation_id):
         language_id=16,
         isInternal=False,
         ProcessedForIdentity=False,
-        keywords=keywords,
+        entities=entities,
         locations=location_names,
         media_urls=media_urls,
         categories=categories,

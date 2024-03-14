@@ -1,7 +1,7 @@
 from fastapi import Request
 from app.config.dependencies import db_dependency
-from app.data.newsData import fetch_news_by_id, get_category_by_topic, get_keyword, \
-    get_news_by_keyword, get_news_by_category, get_news_by_user_following
+from app.data.newsData import add_news_to_bookmark, check_news_exists_by_id, fetch_news_by_id, fetch_news_by_id_authenticated, get_all_bookmarks_for_user, get_category_by_topic, get_entity, \
+    get_news_by_entity, get_news_by_category, get_news_by_user_following, remove_news_from_bookmark
 from app.models.news import NewsInput
 from fastapi import HTTPException, Path, APIRouter, Depends
 from slowapi import Limiter
@@ -11,7 +11,7 @@ from app.services.authService import get_current_user
 from app.services.commonService import get_category_by_id
 from app.services.newsService import get_news_by_title, delete_news_by_title, \
     get_news_for_video, get_news_for_newsCard, add_news_from_newsInput, format_newscard, get_oldest_news_time
-from app.services.newsAnalyzer import extract_keywords
+from app.services.newsAnalyzer import extract_entities
 
 router = APIRouter(prefix="/news", tags=["news"])
 limiter = Limiter(key_func=get_remote_address)
@@ -41,6 +41,19 @@ async def get_news(
     return {"message": "News found successfully.", "news_id": existing_news.id}
 
 
+
+@router.get("/getByIDAuthenticated")
+async def get_news_byID_authorized(
+        request: Request,
+        user: user_dependency,
+        db: db_dependency,
+        news_id: int):
+    rows = await fetch_news_by_id_authenticated(news_id, user["id"])
+    if not rows:
+        raise HTTPException(status_code=404, detail="News not found")
+
+    formatted_news = format_newscard(rows)
+    return formatted_news[0] if formatted_news else None
 
 @router.get("/getByID")
 async def get_news_byID(
@@ -124,14 +137,13 @@ async def delete_news(
 
 
 
-@router.get("/getNewsbyKeywordID")
+@router.get("/getNewsbyentityID")
 async def get_news_by_category_id(
         request: Request,
         user: user_dependency,
         db: db_dependency,
-        keyword_id: int):
-    return get_news_by_keyword(db, keyword_id, 10, user["id"])
-
+        entity_id: int):
+    return get_news_by_entity(db, entity_id, 10, user["id"])
 
 
 @router.get("/getNewsbyTopic")
@@ -150,12 +162,52 @@ async def get_news_by_topid(
         new_last_news_time = get_oldest_news_time(news_card)
         return {"news": news_card, "last_news_time": new_last_news_time, "load_more": len(news)>number_of_articles_to_fetch}
 
-    keyword = await get_keyword(topic)
-    if keyword and keyword is not None:
-        news = await get_news_by_keyword(keyword['id'], last_news_time, number_of_articles_to_fetch * 2, user["id"])
+    entity = await get_entity(topic)
+    if entity and entity is not None:
+        news = await get_news_by_entity(entity['id'], last_news_time, number_of_articles_to_fetch * 2, user["id"])
         news_card = format_newscard(news[:number_of_articles_to_fetch])
         new_last_news_time = get_oldest_news_time(news_card)
         return {"news": news_card, "last_news_time": new_last_news_time, "load_more": len(news)>number_of_articles_to_fetch}
 
     return {"news": [], "last_news_time": last_news_time, "load_more": False}
+
+
+########################BOOKMARKS########################
+
+@router.post("/addNewsToBookmark/")
+async def add_news_to_bookmark_route(
+        news_id: int,
+        user: user_dependency,
+        db: db_dependency):
+    if(check_news_exists_by_id(news_id) == False):
+        raise HTTPException(status_code=400, detail="News does not exists")
+    try:
+        await add_news_to_bookmark(user['id'], news_id)
+        return {"message": "News successfully added to bookmarks."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/removeNewsFromBookmark/")
+async def remove_news_from_bookmark_route(
+        news_id: int,
+        user: user_dependency,
+        db: db_dependency):
+    if(check_news_exists_by_id(news_id) == False):
+        raise HTTPException(status_code=400, detail="News does not exists")
+    try:
+        await remove_news_from_bookmark(user['id'], news_id)
+        return {"message": "News successfully removed from bookmarks."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/getAllBookmarksForUser/")
+async def get_all_bookmarks_for_user_route(
+        user: user_dependency,
+        db: db_dependency):
+    try:
+        bookmarked_news = await get_all_bookmarks_for_user(user['id'])
+        news_card = format_newscard(bookmarked_news)
+        return news_card
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 

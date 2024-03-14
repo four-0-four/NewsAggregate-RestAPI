@@ -36,7 +36,7 @@ def test_add_news_empty_title():
         language_id=1,
         isInternal=False,
         ProcessedForIdentity=True,
-        keywords=["test", "news", "pytest"],
+        entities=["test", "news", "pytest"],
         locations=["Sample Location"],  # Add a valid location
         newsCorporationID=16,  # Add a valid news corporation ID
         externalLink="https://example.com",  # Add a valid external link
@@ -74,7 +74,7 @@ def test_add_news_empty_content():
         language_id=1,
         isInternal=False,
         ProcessedForIdentity=True,
-        keywords=["test", "news", "pytest"],
+        entities=["test", "news", "pytest"],
         locations=["Sample Location"],  # Add a valid location
         newsCorporationID=123,  # Add a valid news corporation ID
         externalLink="https://example.com",  # Add a valid external link
@@ -116,7 +116,7 @@ def test_add_news_db():
         language_id=1,
         isInternal=False,
         ProcessedForIdentity=True,
-        keywords=["test", "news", "pytest"],
+        entities=["test", "news", "pytest"],
         locations=["Sample Location"],  # Add a valid location
         newsCorporationID=16,  # Add a valid news corporation ID
         externalLink="https://example.com",  # Add a valid external link
@@ -157,7 +157,7 @@ def test_add_news_empty_categories():
         language_id=1,
         isInternal=False,
         ProcessedForIdentity=True,
-        keywords=["sample"],
+        entities=["sample"],
         locations=["Sample Location"],  # Add a valid location
         newsCorporationID=123,  # Add a valid news corporation ID
         externalLink="https://example.com",  # Add a valid external link

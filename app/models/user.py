@@ -32,12 +32,12 @@ class UserWriterFollowing(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-class UserKeywordFollowing(Base):
-    __tablename__ = "user_keyword_following"
+class UserentityFollowing(Base):
+    __tablename__ = "user_entity_following"
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))
-    keyword_id = Column(Integer, ForeignKey('keywords.id'))
+    entity_id = Column(Integer, ForeignKey('entities.id'))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

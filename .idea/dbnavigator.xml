@@ -391,7 +391,7 @@ from
     <code-completion-settings>
       <filters>
         <basic-filter>
-          <filter-element type="RESERVED_WORD" id="keyword" selected="true" />
+          <filter-element type="RESERVED_WORD" id="entity" selected="true" />
           <filter-element type="RESERVED_WORD" id="function" selected="true" />
           <filter-element type="RESERVED_WORD" id="parameter" selected="true" />
           <filter-element type="RESERVED_WORD" id="datatype" selected="true" />
@@ -453,7 +453,7 @@ from
           </any-schema>
         </basic-filter>
         <extended-filter>
-          <filter-element type="RESERVED_WORD" id="keyword" selected="true" />
+          <filter-element type="RESERVED_WORD" id="entity" selected="true" />
           <filter-element type="RESERVED_WORD" id="function" selected="true" />
           <filter-element type="RESERVED_WORD" id="parameter" selected="true" />
           <filter-element type="RESERVED_WORD" id="datatype" selected="true" />
@@ -516,7 +516,7 @@ from
         </extended-filter>
       </filters>
       <sorting enabled="true">
-        <sorting-element type="RESERVED_WORD" id="keyword" />
+        <sorting-element type="RESERVED_WORD" id="entity" />
         <sorting-element type="RESERVED_WORD" id="datatype" />
         <sorting-element type="OBJECT" id="column" />
         <sorting-element type="OBJECT" id="table" />

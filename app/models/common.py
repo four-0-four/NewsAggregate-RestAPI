@@ -48,8 +48,8 @@ class Language(Base):
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
     
-class Keyword(Base):
-    __tablename__ = "keywords"
+class entity(Base):
+    __tablename__ = "entities"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200))
