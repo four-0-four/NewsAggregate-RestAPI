@@ -63,7 +63,8 @@ async def add_news_from_newsInput(db: Session, news_input: NewsInput):
         existing_entity = await get_entity(entity)
         if not existing_entity:
             # Add the entity if it does not exist
-            await add_entity(entity)
+            # TODO: change the type of added entity
+            await add_entity(entity,"test")
             existing_entity = await get_entity(entity)
 
         # Add the entity to the newsEntities table
