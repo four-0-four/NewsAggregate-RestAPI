@@ -21,16 +21,16 @@ async def get_entity(entity: str) -> Optional[dict]:
                 return await cur.fetchone()
 
 
-async def add_entity(entity: str):
+async def add_entity(entity: str, type: str) -> None:
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute("INSERT INTO entities (name) VALUES (%s);", (entity,))
+                await cur.execute("INSERT INTO entities (name, type) VALUES (%s, %s);", (entity,type, ))
                 # Commit the transaction
                 await conn.commit()
 
 
-async def fetch_news_by_id(news_id: int, user_id: int) -> Optional[List[dict]]:
+async def fetch_news_by_id(news_id: int) -> Optional[List[dict]]:
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:

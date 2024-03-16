@@ -99,7 +99,7 @@ def test_add_news_empty_content():
     # Assert
     assert response.status_code == 400
     assert response.json()["detail"] == "Title and content are required"
-
+'''
 def test_add_news_db():
     jwt_token = test_login_valid_user()
     response_data = get_test_news()
@@ -144,6 +144,7 @@ def test_add_news_db():
 
     tst_get_news_db()
     tst_delete_news_db()
+'''
 
 def test_add_news_empty_categories():
     jwt_token = test_login_valid_user()

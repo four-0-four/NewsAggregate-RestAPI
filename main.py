@@ -13,10 +13,26 @@ limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI()
 
-# CORS middleware
+
+origins = [
+    "http://www.farabix.com",
+    "https://www.farabix.com",
+    "http://farabix.com",
+    "https://farabix.com",
+    "https://website-buxry.ondigitalocean.app",
+    "http://website-buxry.ondigitalocean.app",
+    "https://website-stage-hlo64.ondigitalocean.app",
+    "http://website-stage-hlo64.ondigitalocean.app",
+    "https://stg.web.farabix.com",
+    "http://stg.web.farabix.com",
+    "http://localhost",
+    "http://localhost:3000",
+]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Specify your frontend's URL in production
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
