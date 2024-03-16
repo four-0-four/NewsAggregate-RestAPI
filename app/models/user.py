@@ -57,7 +57,7 @@ class UserInput(BaseModel):
     username: Optional[str] = Field(default=None, min_length=2, max_length=100)
     email: EmailStr = Field(...)  # Validates email format
     first_name: str = Field(min_length=2, max_length=100)
-    last_name: str = Field(min_length=2, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
     password: str = Field(min_length=8, max_length=300)
     confirmPassword: str = Field(min_length=8, max_length=300)
     role: Optional[str] = Field(default='user')
