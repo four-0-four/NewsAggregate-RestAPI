@@ -121,7 +121,7 @@ List[dict]:
         WHERE nk.entity_id = %s
             AND (ncorp.id NOT IN (
                    SELECT CorporationID FROM user_newsSource_preferences WHERE userID = %s AND unp.Preference = 0))
-          AND n.publishedDate < %s
+          AND n.publishedDate < %s AND n.summarized = 1 AND n.ProcessedForIdentity = 1
         ORDER BY n.publishedDate DESC
         LIMIT %s;
     """
@@ -156,7 +156,7 @@ async def get_news_by_user_following(user_id: int, last_news_time: Optional[str]
         LEFT JOIN newsAffiliates ON news.id = newsAffiliates.news_id
         LEFT JOIN newsCorporations ON newsAffiliates.newsCorporation_id = newsCorporations.id
         LEFT JOIN bookmarked_news ON news.id = bookmarked_news.newsID AND bookmarked_news.userID = %s
-        WHERE news.publishedDate < %s
+        WHERE news.publishedDate < %s AND summarized = 1 AND ProcessedForIdentity = 1
           AND (newsCorporations.id IN (
                SELECT CorporationID FROM user_newsSource_preferences WHERE userID = %s AND Preference = TRUE))
           AND (newsCategories.category_id IN (
@@ -198,7 +198,7 @@ async def get_news_by_category(category_id: int, last_news_time: str, number_of_
         WHERE ncat.category_id = %s
           AND (ncorp.id NOT IN (
                    SELECT CorporationID FROM user_newsSource_preferences WHERE userID = %s AND Preference = 0))
-          AND n.publishedDate < %s
+          AND n.publishedDate < %s AND n.summarized = 1 AND n.ProcessedForIdentity = 1
         ORDER BY n.publishedDate DESC
         LIMIT %s;
     """
