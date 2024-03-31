@@ -18,6 +18,12 @@ async def get_all_news_sources(
         db: db_dependency):
     return await get_all_news_sources_db()
 
+@router.get("/landing")
+async def get_all_news_sources(
+        request: Request,
+        db: db_dependency):
+    return await get_all_news_sources_db()
+
 @router.get("/get-users-preference")
 async def get_user_news_source_preference(
         request: Request,

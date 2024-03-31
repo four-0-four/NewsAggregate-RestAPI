@@ -9,6 +9,7 @@ async def get_all_news_sources_db() -> [dict]:
                 query_stmt = "SELECT * FROM newsCorporations"
                 await cur.execute(query_stmt)
                 return await cur.fetchall()
+            
 
 async def get_user_all_newsSource_preferences(user_id: int, preference: bool) -> [dict]:
     async with aiomysql.create_pool(**conn_params) as pool:
