@@ -213,15 +213,12 @@ async def add_following(
     # Check if it's a category
     category = await get_category_by_topic(topic)
     if category:
-        print("about to add category:", user["id"], category["id"])
         following_entity = await create_category_following(user["id"], category["id"])
-        print("category following added successfully")
         return {"message": "Category following added successfully", "topic": topic}
 
     # Check if it's a entity
     entity = await get_entity(topic)
     if entity:
-        print("about to add category:", user["id"], category["id"])
         following_entity = await create_entity_following(user["id"], entity["id"])
         return {"message": "entity following added successfully", "topic": topic}
     print("whaaat")
