@@ -9,7 +9,7 @@ from typing import Annotated, Optional, List
 from starlette.exceptions import HTTPException
 
 from app.config.dependencies import db_dependency
-from app.data.newsData import get_category_by_topic, get_entity
+from app.data.newsData import create_category_following, create_entity_following, get_category_by_topic, get_entity
 from app.data.userData import check_username_in_db, update_username_in_db, update_first_name_in_db, \
     update_last_name_in_db, get_user_by_id
 from app.email.sendEmail import sendEmail, sendEmailInternal, sendEmailWithMultipleAttachments
@@ -17,7 +17,7 @@ from app.models.user import ContactUsInput, reportBugInput, UsernameCheckInput, 
     ChangePasswordInputProfile
 from app.services.authService import get_current_user
 from app.services.commonService import get_category_by_id, get_entity_byID
-from app.services.userService import create_category_following, create_entity_following, get_all_entity_following, \
+from app.services.userService import get_all_entity_following, \
     get_all_category_following, remove_category_following, remove_entity_following,  \
     change_password_profile
 
@@ -76,8 +76,8 @@ async def get_followings(
         user: user_dependency,
         db: db_dependency):
     all_followings = []
-    entity_followings = get_all_entity_following(db, user["id"])
-    category_followings = get_all_category_following(db, user["id"])
+    entity_followings = await get_all_entity_following(user["id"])
+    category_followings = await get_all_category_following(user["id"])
 
     all_followings.extend(entity_followings)
     all_followings.extend(category_followings)
@@ -96,7 +96,7 @@ async def add_following_category(
         raise HTTPException(status_code=404, detail="Category not found")
 
     # add it to the following table and get the created entity
-    following_entity = create_category_following(db, user["id"], category_id)
+    following_entity = create_category_following(user["id"], category_id)
 
     return {"message": "Category following added successfully", "following": following_entity}
 
@@ -114,7 +114,7 @@ async def add_following_entity(
         raise HTTPException(status_code=404, detail="entity not found")
 
     # add it to the following table and get the created entity
-    following_entity = create_entity_following(db, user["id"], entity_id)
+    following_entity = create_entity_following(user["id"], entity_id)
 
     return {"message": "entity following added successfully", "following": following_entity}
 
@@ -213,15 +213,18 @@ async def add_following(
     # Check if it's a category
     category = await get_category_by_topic(topic)
     if category:
-        following_entity = create_category_following(db, user["id"], category["id"])
+        print("about to add category:", user["id"], category["id"])
+        following_entity = await create_category_following(user["id"], category["id"])
+        print("category following added successfully")
         return {"message": "Category following added successfully", "topic": topic}
 
     # Check if it's a entity
     entity = await get_entity(topic)
     if entity:
-        following_entity = create_entity_following(db, user["id"], entity["id"])
+        print("about to add category:", user["id"], category["id"])
+        following_entity = await create_entity_following(user["id"], entity["id"])
         return {"message": "entity following added successfully", "topic": topic}
-
+    print("whaaat")
     raise HTTPException(status_code=404, detail="Topic not found")
 
 
@@ -243,14 +246,14 @@ async def add_following(
         # Check if it's a category
         category = await get_category_by_topic(topic)
         if category:
-            create_category_following(db, user["id"], category["id"])
+            await create_category_following(user["id"], category["id"])
             added_topics.append(topic)
             continue  # Move to the next topic
 
         # Check if it's a entity
         entity = await get_entity(topic)
         if entity:
-            create_entity_following(db, user["id"], entity["id"])
+            await create_entity_following(user["id"], entity["id"])
             added_topics.append(topic)
             continue  # Move to the next topic
 
@@ -277,13 +280,13 @@ async def remove_following(
     # Check if it's a category and if the user is following it
     category = await get_category_by_topic(topic)
     if category:
-        remove_category_following(db, user["id"], category["id"])
+        await remove_category_following(user["id"], category["id"])
         return {"message": "Category following removed successfully", "topic": topic}
 
     # Check if it's a entity and if the user is following it
     entity = await get_entity(topic)
     if entity:
-        remove_entity_following(db, user["id"], entity["id"])
+        await remove_entity_following(user["id"], entity["id"])
         return {"message": "entity following removed successfully", "topic": topic}
 
     raise HTTPException(status_code=404, detail="Topic not found")

@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import Request
 from app.config.dependencies import db_dependency
 from app.data.newsData import add_news_to_bookmark, check_news_exists_by_id, fetch_news_by_id, fetch_news_by_id_authenticated, get_all_bookmarks_for_user, get_category_by_topic, get_entity, \
@@ -12,6 +13,8 @@ from app.services.commonService import get_category_by_id
 from app.services.newsService import get_news_by_title, delete_news_by_title, \
     get_news_for_video, get_news_for_newsCard, add_news_from_newsInput, format_newscard, get_oldest_news_time
 from app.services.newsAnalyzer import extract_entities
+from time import time
+
 
 router = APIRouter(prefix="/news", tags=["news"])
 limiter = Limiter(key_func=get_remote_address)
@@ -48,27 +51,57 @@ async def get_news_byID_authorized(
         user: user_dependency,
         db: db_dependency,
         news_id: int):
-    rows = await fetch_news_by_id_authenticated(news_id, user["id"])
-    if not rows:
+    news = await fetch_news_by_id_authenticated(news_id, user["id"])
+    if not news:
         raise HTTPException(status_code=404, detail="News not found")
 
-    formatted_news = format_newscard(rows)
-    return formatted_news[0] if formatted_news else None
+    #formatted_news = format_newscard(rows)
+    return news if news else None
 
 @router.get("/getByID")
 async def get_news_byID(
         request: Request,
         db: db_dependency,
         news_id: int):
-    rows = await fetch_news_by_id(news_id)
+    news = await fetch_news_by_id(news_id)
     if not rows:
         raise HTTPException(status_code=404, detail="News not found")
 
-    formatted_news = format_newscard(rows)
-    return formatted_news[0] if formatted_news else None
+    #formatted_news = format_newscard(rows)
+    return news if news else None
 
 
 @router.get("/user/get")
+async def get_news(
+        request: Request,
+        user: user_dependency,
+        last_news_time: str,
+        number_of_articles_to_fetch: int,
+        db: db_dependency):
+    overall_start_time = time()  # Start timing overall process
+    
+    # check if title is unique
+    start_time = time()  # Start timing for get_news_by_user_following
+    all_interested_news = await get_news_by_user_following(user["id"], last_news_time, number_of_articles_to_fetch * 2)
+    end_time = time()  # End timing for get_news_by_user_following
+    print(f"get_news_by_user_following took {end_time - start_time} seconds")
+    
+    #start_time = time()  # Start timing for format_newscard
+    #formatted_newscard = format_newscard(all_interested_news[:number_of_articles_to_fetch])
+    #end_time = time()  # End timing for format_newscard
+    #print(f"format_newscard took {end_time - start_time} seconds")
+    
+    start_time = time()  # Start timing for get_oldest_news_time
+    new_last_news_time = get_oldest_news_time(all_interested_news)
+    end_time = time()  # End timing for get_oldest_news_time
+    print(f"get_oldest_news_time took {end_time - start_time} seconds")
+    
+    overall_end_time = time()  # End timing overall process
+    print(f"Overall process took {overall_end_time - overall_start_time} seconds")
+    
+    return {"news": all_interested_news[:number_of_articles_to_fetch], "last_news_time": new_last_news_time, "load_more": len(all_interested_news)>number_of_articles_to_fetch}
+
+'''
 async def get_news(
         request: Request,
         user: user_dependency,
@@ -80,7 +113,7 @@ async def get_news(
     formatted_newscard = format_newscard(all_interested_news[:number_of_articles_to_fetch])
     new_last_news_time = get_oldest_news_time(formatted_newscard)
     return {"news": formatted_newscard, "last_news_time": new_last_news_time, "load_more": len(all_interested_news)>number_of_articles_to_fetch}
-
+'''
 
 
 
@@ -89,14 +122,14 @@ async def get_news_by_category_and_past_hour(
         request: Request,
         user: user_dependency,
         db: db_dependency,
-        category_id: int,
-        past_hours: int):
+        category_id: int):
     # check if title is unique
-    existing_news = get_news_by_category(db, category_id, past_hours)
+    now = datetime.now()
+    date_string = now.strftime('%Y-%m-%d %H:%M:%S')
+    existing_news = await get_news_by_category(category_id, date_string, 10, user["id"])
     if not existing_news:
         raise HTTPException(status_code=409, detail="no news found")
-    complete_news = get_news_for_newsCard(db, existing_news)
-    return {"message": "News found successfully.", "news": complete_news}
+    return {"message": "News found successfully.", "news": existing_news}
 
 
 @router.get("/getForVideo/past12hr")
@@ -158,14 +191,16 @@ async def get_news_by_topid(
     category = await get_category_by_topic(topic)
     if category:
         news = await get_news_by_category(category['id'], last_news_time, number_of_articles_to_fetch * 2, user["id"])
-        news_card = format_newscard(news[:number_of_articles_to_fetch])
+        #news_card = format_newscard(news[:number_of_articles_to_fetch])
+        news_card = news[:number_of_articles_to_fetch]
         new_last_news_time = get_oldest_news_time(news_card)
         return {"news": news_card, "last_news_time": new_last_news_time, "load_more": len(news)>number_of_articles_to_fetch}
 
     entity = await get_entity(topic)
     if entity and entity is not None:
         news = await get_news_by_entity(entity['id'], last_news_time, number_of_articles_to_fetch * 2, user["id"])
-        news_card = format_newscard(news[:number_of_articles_to_fetch])
+        #news_card = format_newscard(news[:number_of_articles_to_fetch])
+        news_card = news[:number_of_articles_to_fetch]
         new_last_news_time = get_oldest_news_time(news_card)
         return {"news": news_card, "last_news_time": new_last_news_time, "load_more": len(news)>number_of_articles_to_fetch}
 

@@ -2,93 +2,63 @@ from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException
 
 from app.data.userData import verify_old_password, update_user_password, get_user_by_id
-from app.models.common import entity, Category
-from app.models.user import UserCategoryFollowing, UserentityFollowing
+from aiomysql import create_pool, DictCursor
 from app.services.authService import create_access_token, create_refresh_token, user_to_json, new_user_to_json
+from app.config.database import conn_params
 
 
-def get_all_category_following(db: Session, user_id: int):
-    userCategoryFollowings = (
-        db.query(UserCategoryFollowing)
-        .filter(UserCategoryFollowing.user_id == user_id)
-        .all()
-    )
 
-    categoryStrings = []
-    for userCategory in userCategoryFollowings:
-        category = db.query(Category).filter(Category.id == userCategory.category_id).first()
-        categoryStrings.append(category.name)
-
-    return categoryStrings
-
-
-def get_category_following(db: Session, user_id: int, category_id: int):
-    return (
-        db.query(UserCategoryFollowing)
-        .filter(UserCategoryFollowing.user_id == user_id, UserCategoryFollowing.category_id == category_id)
-        .first()
-    )
+async def get_all_category_following(user_id: int):
+    async with create_pool(**conn_params) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor(DictCursor) as cur:
+                await cur.execute(
+                    "SELECT name FROM categories INNER JOIN userTopicFollowing ON categories.id = userTopicFollowing.topicID WHERE userTopicFollowing.userID = %s AND userTopicFollowing.topicType = 'CATEGORY'",
+                    (user_id,)
+                )
+                categories = await cur.fetchall()
+                category_strings = [category['name'] for category in categories]
+                return category_strings
 
 
-def create_category_following(db: Session, user_id: int, category_id: int):
-    category_following = get_category_following(db, user_id, category_id)
-    if not category_following:
-        category_following = UserCategoryFollowing(user_id=user_id, category_id=category_id)
-        db.add(category_following)
-        db.commit()
-        db.refresh(category_following)
-    return category_following
+async def get_all_entity_following(user_id: int):
+    async with create_pool(**conn_params) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor(DictCursor) as cur:
+                await cur.execute(
+                    "SELECT name FROM entities INNER JOIN userTopicFollowing ON entities.id = userTopicFollowing.topicID WHERE userTopicFollowing.userID = %s AND userTopicFollowing.topicType = 'ENTITY'",
+                    (user_id,)
+                )
+                entities = await cur.fetchall()
+                entity_strings = [entity['name'] for entity in entities]
+                return entity_strings
 
 
-def get_all_entity_following(db: Session, user_id: int):
-    userentityFollowing = (
-        db.query(UserentityFollowing)
-        .filter(UserentityFollowing.user_id == user_id)
-        .all()
-    )
+async def remove_entity_following(user_id: int, entity_id: int):
+    async with create_pool(**conn_params) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "DELETE FROM userTopicFollowing WHERE userID = %s AND topicID = %s AND topicType = 'ENTITY'",
+                    (user_id, entity_id)
+                )
+                affected = cur.rowcount
+                await conn.commit()
+                if affected == 0:
+                    raise HTTPException(status_code=404, detail="Entity following not found")
 
-    entitiestrings = []
-    for userentity in userentityFollowing:
-        entity = db.query(entity).filter(entity.id == userentity.entity_id).first()
-        entitiestrings.append(entity.name)
-
-    return entitiestrings
-
-
-def get_entity_following(db: Session, user_id: int, entity_id: int):
-    return (
-        db.query(UserentityFollowing)
-        .filter(UserentityFollowing.user_id == user_id, UserentityFollowing.entity_id == entity_id)
-        .first()
-    )
-
-
-def create_entity_following(db: Session, user_id: int, entity_id: int):
-    entity_following = get_entity_following(db, user_id, entity_id)
-    if not entity_following:
-        entity_following = UserentityFollowing(user_id=user_id, entity_id=entity_id)
-        db.add(entity_following)
-        db.commit()
-        db.refresh(entity_following)
-    return entity_following
-
-
-def remove_entity_following(db: Session, user_id: int, entity_id: int):
-    entity_following = get_entity_following(db, user_id, entity_id)
-    if entity_following:
-        db.delete(entity_following)
-        db.commit()
-    else:
-        raise HTTPException(status_code=404, detail="entity following not found")
-
-
-def remove_category_following(db: Session, user_id: int, category_id: int):
-    category_following = get_category_following(db, user_id, category_id)
-    if category_following:
-        db.delete(category_following)
-        db.commit()
-    else:
-        raise HTTPException(status_code=404, detail="Category following not found")
+async def remove_category_following(user_id: int, category_id: int):
+    async with create_pool(**conn_params) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "DELETE FROM userTopicFollowing WHERE userID = %s AND topicID = %s AND topicType = 'CATEGORY'",
+                    (user_id, category_id)
+                )
+                affected = cur.rowcount
+                await conn.commit()
+                if affected == 0:
+                    raise HTTPException(status_code=404, detail="Category following not found")
 
 
 async def change_password_profile(user_id: int, old_password: str, new_password: str, confirm_password: str):
