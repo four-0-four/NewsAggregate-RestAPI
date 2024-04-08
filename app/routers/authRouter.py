@@ -1,5 +1,6 @@
 # app/controllers/auth_controller.py
 from datetime import timedelta
+from app.email.sendEmail import sendEmail
 from fastapi import APIRouter, Depends, HTTPException, Response, Request, Header
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
@@ -31,8 +32,26 @@ async def create_user(
     user: UserInput,
     db: Session = Depends(get_db)
 ):
-    return await register_user(request, response, user, db)
+    return await register_user(request, response, user)
 
+'''
+@router.post("/user/tokenize")
+async def create_user(
+    request: Request,
+    response: Response,
+    email: str,
+):
+    return await generate_token(email)
+
+
+@router.post("/user/sendActivateEmail")
+async def create_user(
+    request: Request,
+    response: Response,
+    email: str,
+):
+    return sendEmail("Farabix Support <admin@farabix.com>", email, "activateAccount", "www.farabix.com/user/confirm-registration")
+'''
 
 @router.post("/user/confirm-registration")
 async def confirm_registration(request: Request, response: Response, db: Session = Depends(get_db)):
@@ -59,13 +78,13 @@ async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
-    return login_user(request, response, db, form_data)
+    return await login_user(request, response, form_data)
 
 
 @router.post("/user/forget-password")
 async def forget_password(request: Request, response: Response, db: Session = Depends(get_db)):
     email = await request.json()
-    return initiate_password_reset(email['email'], db)
+    return await initiate_password_reset(email['email'], db)
 
 
 @router.post("/user/confirm-reset")
