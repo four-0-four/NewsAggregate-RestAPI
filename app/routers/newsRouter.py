@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import Request
 from app.config.dependencies import db_dependency
-from app.data.newsData import add_news_to_bookmark, check_news_exists_by_id, fetch_news_by_id, fetch_news_by_id_authenticated, get_all_bookmarks_for_user, get_category_by_topic, get_entity, \
+from app.data.newsData import add_news_to_bookmark, check_news_exists_by_id, fetch_news_by_id, fetch_news_by_id_authenticated, get_all_bookmarks_for_user, get_category_by_parentID, get_category_by_topic, get_entity, \
     get_news_by_entity, get_news_by_category, get_news_by_user_following, remove_news_from_bookmark
 from app.models.news import NewsInput
 from fastapi import HTTPException, Path, APIRouter, Depends
@@ -14,6 +14,8 @@ from app.services.newsService import get_news_by_title, delete_news_by_title, \
     get_news_for_video, get_news_for_newsCard, add_news_from_newsInput, format_newscard, get_oldest_news_time
 from app.services.newsAnalyzer import extract_entities
 from time import time
+from asyncio import gather
+import random
 
 
 router = APIRouter(prefix="/news", tags=["news"])
@@ -205,6 +207,45 @@ async def get_news_by_topid(
         return {"news": news_card, "last_news_time": new_last_news_time, "load_more": len(news)>number_of_articles_to_fetch}
 
     return {"news": [], "last_news_time": last_news_time, "load_more": False}
+
+
+@router.get("/explore")
+async def get_news_by_topid(
+        request: Request,
+        user: user_dependency,
+        db: db_dependency,
+        last_news_time: str,
+        parent_category_id: int):
+
+    all_news = []
+    number_of_articles_to_fetch = 10
+    # get the categories based on the parent_cat_id
+    categories = await get_category_by_parentID(parent_category_id)
+    
+    # Prepare asynchronous tasks for fetching news for each category
+    tasks = [
+        get_news_by_category(category['id'], last_news_time, number_of_articles_to_fetch * 2, user["id"])
+        for category in categories
+    ]
+    
+    # Execute all tasks concurrently and await their results
+    results = await gather(*tasks)
+    
+    all_news = []
+    for news in results:
+        news_card = news[:number_of_articles_to_fetch]
+        all_news.extend(news_card)
+        
+    # Shuffle the news items to mix them up
+    random.shuffle(all_news)
+    
+    # Determine new last news time from the last fetched batch
+    new_last_news_time = get_oldest_news_time(news_card) if all_news else last_news_time
+    
+    # Determine if more news are available for loading more
+    load_more = any(len(news) > 10 for news in results)
+    
+    return {"news": all_news, "last_news_time": new_last_news_time, "load_more": load_more}
 
 
 ########################BOOKMARKS########################
