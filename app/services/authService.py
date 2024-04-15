@@ -17,7 +17,9 @@ import random
 import string
 from fastapi import HTTPException, Request, Response
 from itsdangerous import URLSafeTimedSerializer
+import aiomysql
 
+from app.config.database import conn_params
 from app.email.sendEmail import sendEmail
 
 SECRET_KEY = getenv("SECRET_KEY", "your-default-secret-key")
@@ -57,48 +59,71 @@ def generate_random_username():
     return f"{entity}_{random_number}"
 
 
-async def register_user(request: Request, response: Response, user: UserInput, db: db_dependency):
+async def register_user(request: Request, response: Response, user: UserInput):
     # Password Confirmation Check
     if user.password != user.confirmPassword:
         raise HTTPException(status_code=400, detail="Passwords do not match")
 
-    # Check if a user with the same email already exists
-    existing_user = db.query(User).filter(User.email == user.email).first()
-    if existing_user:
-        if not existing_user.is_active:  # Check if the existing user is not active
-            # Generate a new activation token (implement this function)
-            token = generate_token(existing_user.email, db)
+    async with aiomysql.create_pool(**conn_params) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                # Check if a user with the same email already exists
+                await cur.execute("SELECT * FROM users WHERE email = %s LIMIT 1;", (user.email,))
+                existing_user = await cur.fetchone()
 
-            # Send an email with the activation link (implement send_activation_email)
-            activation_link = f"{BASE_URL}/auth/ActivateAccount?token={token}"
-            sendEmail("Farabix Support <admin@farabix.com>", user.email, "activateAccount", activation_link)
+                if existing_user:
+                    if not existing_user['is_active']:
+                        try:
+                            token = await generate_token(existing_user['email'])
+                            activation_link = f"{BASE_URL}/auth/ActivateAccount?token={token}"
+                            sendEmail("Farabix Support <admin@farabix.com>", user.email, "activateAccount", activation_link)
+                        except Exception as e:
+                            raise HTTPException(status_code=500, detail="Failed to send activation email.")
+                        raise HTTPException(status_code=400, detail="Please verify your email to complete any pending actions. We have sent you an email!")
+                    else:
+                        raise HTTPException(status_code=400, detail="Email already in use by another account")
 
-            raise HTTPException(status_code=400, detail="User already exists but is not verified. An activation email has been sent. Please check your email.")
-        else:
-            raise HTTPException(status_code=400, detail="Email already in use and verified")
+                if not user.username:
+                    user.username = generate_random_username()
 
-    # Check if username is provided, if not, generate a random one
-    if not user.username:
-        user.username = generate_random_username()
-        # Ensure the generated username is also unique
-        while db.query(User).filter(User.username == user.username).first():
-            user.username = generate_random_username()
-    elif db.query(User).filter(User.username == user.username).first():
-        raise HTTPException(status_code=400, detail="Username already in use")
+                await cur.execute("SELECT * FROM users WHERE username = %s LIMIT 1;", (user.username,))
+                while await cur.fetchone():
+                    user.username = generate_random_username()
 
-    new_user = add_user_to_db(user, db)
-    
-    #add default news sources for user
-    await insert_default_news_sources_for_user(new_user.id)
+                try:
+                    hashed_password = bcrypt_context.hash(user.password)
+                    await cur.execute(
+                        "INSERT INTO users (email, username, first_name, last_name, hashed_password, is_active) VALUES (%s, %s, %s, %s, %s, %s);",
+                        (user.email, user.username, user.first_name, user.last_name, hashed_password, False)
+                    )
+                except Exception as e:
+                    await conn.rollback()
+                    raise HTTPException(status_code=500, detail="Failed to create user.")
 
-    # Generate a password reset token (you need to implement this)
-    token = generate_token(new_user.email, db)
+                await conn.commit()
 
-    # Send an email with the password reset link (implement send_reset_email)
-    reset_link = f"{BASE_URL}/auth/ActivateAccount?token={token}"
-    sendEmail("Farabix Support <admin@farabix.com>", user.email, "activateAccount", reset_link)
+                # Attempt to fetch the newly created user to get the ID
+                await cur.execute("SELECT * FROM users WHERE email = %s LIMIT 1;", (user.email,))
+                new_user = await cur.fetchone()
+                if not new_user:
+                    raise HTTPException(status_code=500, detail="Failed to fetch new user after creation.")
 
-    return {"message": "An Email sent to your email address, please check your email to activate your account"}
+                # Add default news sources for user
+                # Ensure this operation is critical and should not fail silently
+                try:
+                    await insert_default_news_sources_for_user(new_user['id'])
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail="Failed to set up default news sources for the user.")
+
+                # Send activation email
+                try:
+                    token = await generate_token(new_user['email'])
+                    reset_link = f"{BASE_URL}/auth/ActivateAccount?token={token}"
+                    sendEmail("Farabix Support <admin@farabix.com>", user.email, "activateAccount", reset_link)
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail="Failed to send the activation email.")
+
+    return {"message": "An email has been sent to your address. Please check your email to activate your account."}
 
 
 def get_loggedin_user(request: Request, db: db_dependency):
@@ -128,18 +153,17 @@ def get_loggedin_user(request: Request, db: db_dependency):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
-def login_user(
+async def login_user(
     request: Request,
     response: Response,
-    db: db_dependency,
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
     # Try to authenticate using form_data.username as username
-    user = authenticate_user(db, form_data.username, form_data.password)
+    user = await authenticate_user(form_data.username, form_data.password)
     if not user:
         # If authentication failed, try to authenticate using form_data.username as email
-        user = authenticate_user(
-            db, form_data.username, form_data.password, is_email=True
+        user = await authenticate_user(
+            form_data.username, form_data.password, is_email=True
         )
         if not user:
             raise HTTPException(
@@ -147,17 +171,17 @@ def login_user(
             )
 
     # Check if the user is active
-    if not user.is_active:
+    if not user.get("is_active",False):
         raise HTTPException(
             status_code=403,
             detail="Please click on the activation link in your email to activate your account",
         )
 
     access_data = {
-        "sub": user.username,
-        "id": user.id,
+        "sub": user.get("username", ""),
+        "id": user.get("id","" ),
         "role": "user",
-        "user": user_to_json(user),
+        "user": new_user_to_json(user),
     }
     access_token = create_access_token(access_data)
     refresh_token = create_refresh_token(access_data)
@@ -167,41 +191,49 @@ def login_user(
 
 
 
-def generate_token(email, db):
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User with given email not found")
+async def generate_token(email):
+    try:
+        async with aiomysql.create_pool(**conn_params) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cur:
+                    # Start a transaction
+                    await conn.begin()
 
-    # Invalidate existing tokens that are not yet expired
-    current_time = datetime.utcnow()
-    tokens = db.query(Tokens).filter(
-        Tokens.user_id == user.id,
-        Tokens.expiration_date > current_time,
-        Tokens.used == False
-    ).all()
+                    # Check for the user and invalidate old tokens in one go
+                    await cur.execute("""
+                        SELECT id FROM users WHERE email = %s LIMIT 1 FOR UPDATE;
+                    """, (email,))
+                    user = await cur.fetchone()
 
-    for token in tokens:
-        token.invalidated = True
+                    if not user:
+                        await conn.rollback()
+                        raise HTTPException(status_code=404, detail="User with given email not found")
 
-    # Serialize data for new token
-    serializer = URLSafeTimedSerializer(SECRET_KEY)
-    token_string = serializer.dumps(email, salt=FORGET_SECURITY_PASSWORD_SALT)
+                    current_time = datetime.utcnow()
+                    # Directly invalidate all expired tokens
+                    await cur.execute("""
+                        UPDATE tokens SET invalidated = 1 
+                        WHERE user_id = %s AND expiration_date > %s AND used = 0;
+                    """, (user['id'], current_time))
 
-    # Create new token object
-    expiration_date = current_time + timedelta(seconds=900)  # 15 minutes from now
-    new_token = Tokens(
-        user_id=user.id,
-        token=token_string,
-        expiration_date=expiration_date,
-        used=False,
-        invalidated=False
-    )
+                    # Serialize data for new token
+                    serializer = URLSafeTimedSerializer(SECRET_KEY)
+                    token_string = serializer.dumps(email, salt=FORGET_SECURITY_PASSWORD_SALT)
 
-    # Add new token to database
-    db.add(new_token)
-    db.commit()
+                    # Create new token object
+                    expiration_date = current_time + timedelta(seconds=900)  # 15 minutes from now
+                    await cur.execute("""
+                        INSERT INTO tokens (user_id, token, expiration_date, used, invalidated) VALUES (%s, %s, %s, 0, 0);
+                    """, (user['id'], token_string, expiration_date))
 
-    return token_string
+                    # Commit the transaction
+                    await conn.commit()
+
+                    return token_string
+    except Exception as e:
+        # Rollback in case of exception
+        await conn.rollback()
+        raise HTTPException(status_code=500, detail="An unexpected error occurred: " + str(e))
 
 
 def check_token(token_str, db, activateIt=False, expiration=3600):
@@ -260,7 +292,7 @@ def invalidate_token(token_str, db, expiration=3600):
     db.commit()
 
 
-def initiate_password_reset(email: str, db: db_dependency):
+async def initiate_password_reset(email: str, db: db_dependency):
     # Check if a user with the given email exists
     user = db.query(User).filter(User.email == email).first()
     if not user:
@@ -268,7 +300,7 @@ def initiate_password_reset(email: str, db: db_dependency):
 
     if not user.is_active:  # Check if the existing user is not active
         # Generate a new activation token (implement this function)
-        token = generate_token(user.email, db)
+        token = await generate_token(user.email)
 
         # Send an email with the activation link (implement send_activation_email)
         activation_link = f"{BASE_URL}/auth/ActivateAccount?token={token}"
@@ -278,7 +310,7 @@ def initiate_password_reset(email: str, db: db_dependency):
 
 
     # Generate a password reset token (you need to implement this)
-    reset_token = generate_token(email, db)
+    reset_token = await generate_token(email)
 
     # Send an email with the password reset link (implement send_reset_email)
     reset_link = f"{BASE_URL}/auth/ChangePassword?token={reset_token}"
@@ -373,7 +405,7 @@ def verify_password(plain_password: str, hashed_password: str):
     return bcrypt_context.verify(plain_password, hashed_password)
 
 
-def authenticate_user(db: Session, username: str, password: str, is_email=False):
+def authenticate_user2(db: Session, username: str, password: str, is_email=False):
     if is_email:
         user = db.query(User).filter(User.email == username).first()
     else:
@@ -382,6 +414,23 @@ def authenticate_user(db: Session, username: str, password: str, is_email=False)
     if not user or not verify_password(password, user.hashed_password):
         return False
     return user
+
+
+async def authenticate_user(username: str, password: str, is_email=False):
+    async with aiomysql.create_pool(**conn_params) as pool:
+        async with pool.acquire() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                # Choose the correct column based on whether the username is an email
+                column = "email" if is_email else "username"
+                sql_query = f"SELECT * FROM users WHERE {column} = %s LIMIT 1;"
+
+                # Execute the SQL query
+                await cur.execute(sql_query, (username,))
+                user = await cur.fetchone()
+
+                if not user or not verify_password(password, user['hashed_password']):
+                    return False
+                return user
 
 
 def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=15)):

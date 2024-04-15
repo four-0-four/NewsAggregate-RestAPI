@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from sqlalchemy.sql.annotation import Annotated
 
 from app.config.dependencies import db_dependency
 from app.data.newsSourceData import get_user_all_newsSource_preferences, get_all_news_sources_db

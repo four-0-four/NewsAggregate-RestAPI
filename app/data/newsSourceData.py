@@ -15,7 +15,7 @@ async def get_user_all_newsSource_preferences(user_id: int, preference: bool) ->
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                query_stmt = "SELECT * FROM newsCorporations where id in (SELECT CorporationID FROM user_newsSource_preferences WHERE userID = %s AND Preference = %s)"
+                query_stmt = "SELECT * FROM newsCorporations where id in (SELECT CorporationID FROM userNewsSourcePreferences WHERE userID = %s AND Preference = %s)"
                 await cur.execute(query_stmt, (user_id, preference))
                 return await cur.fetchall()
             
@@ -24,6 +24,6 @@ async def insert_default_news_sources_for_user(user_id: int):
     async with aiomysql.create_pool(**conn_params) as pool:
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                query_stmt = "INSERT INTO user_newsSource_preferences (userID, CorporationID, Preference) SELECT %s, CorporationID, 1 FROM Default_Sources"
+                query_stmt = "INSERT INTO userNewsSourcePreferences (userID, CorporationID, Preference) SELECT %s, CorporationID, 1 FROM Default_Sources"
                 await cur.execute(query_stmt, (user_id,))
                 await conn.commit()

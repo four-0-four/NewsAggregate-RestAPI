@@ -4,7 +4,6 @@ from sqlalchemy import func, and_
 
 from app.data.newsData import get_entity, add_entity
 from app.models.common import Media, entity, NewsCorporations, Category
-from app.models.user import UserCategoryFollowing, UserentityFollowing
 from app.models.writer import Writer
 from sqlalchemy.orm import Session, joinedload, subqueryload
 from app.models.news import (
@@ -14,7 +13,6 @@ from app.models.news import (
     NewsAffiliates,
     NewsMedia,
 )
-from fastapi import APIRouter, Depends, Request, UploadFile
 from typing import List
 from fastapi import HTTPException
 from app.models.news import News, NewsInput
@@ -23,7 +21,6 @@ from app.services.commonService import add_news_categories_db, get_media_by_url,
 from app.services.locationService import find_city_by_name, find_province_by_name, find_continent_by_country, \
     find_country_by_name, add_news_location
 from app.services.writerService import validate_writer
-import pytz
 
 
 #################################### News ####################################
@@ -243,7 +240,7 @@ def get_news_for_video(db: Session, category_id: int, hours: int = 12):
     result = (
         db.query(
             News.title,
-            Media.fileName,
+            Media.mainImage,
             func.group_concat(entity.name).label('entities')
         )
         .join(NewsCategory, NewsCategory.news_id == News.id)
@@ -253,7 +250,7 @@ def get_news_for_video(db: Session, category_id: int, hours: int = 12):
         .join(entity, Newsentities.entity_id == entity.id)
         .filter(NewsCategory.category_id == category_id)
         .filter(News.publishedDate >= time_threshold)
-        .group_by(News.id, Media.fileName)
+        .group_by(News.id, Media.mainImage)
         .all()
     )
 
@@ -289,40 +286,6 @@ def create_news_affiliates(db: Session, news_id: int, corporation_id: int, exter
 
 def get_news_corporations(db: Session, corporation_id:int):
     return db.query(NewsCorporations).filter(NewsCorporations.id == corporation_id).first()
-
-def get_news_by_user_following(db: Session, user_id: int, hours_ago: int = 24, page: int = 1, page_size: int = 20):
-    datetime_hours_ago = datetime.utcnow() - timedelta(hours=hours_ago)
-
-    # Calculate the offset (number of records to skip)
-    offset = (page - 1) * page_size
-
-    # Combined query for categories and entities with eager loading for related entities
-    query = (
-        db.query(News)
-        .filter(News.publishedDate >= datetime_hours_ago)
-        .join(NewsCategory, NewsCategory.news_id == News.id, isouter=True)
-        .join(UserCategoryFollowing,
-              and_(UserCategoryFollowing.category_id == NewsCategory.category_id,
-                   UserCategoryFollowing.user_id == user_id),
-              isouter=True)
-        .join(Newsentities, Newsentities.news_id == News.id, isouter=True)
-        .join(UserentityFollowing,
-              and_(UserentityFollowing.entity_id == Newsentities.entity_id,
-                   UserentityFollowing.user_id == user_id),
-              isouter=True)
-        .options(
-            joinedload(News.categories),
-            joinedload(News.entities),
-            joinedload(News.media),
-            subqueryload(News.affiliates)
-        )
-        .order_by(News.createdAt.desc())
-        .limit(page_size)
-        .offset(offset)
-    )
-
-    return query.all()
-
 
 
 def get_news_information(db: Session, news_id: int):
@@ -363,7 +326,7 @@ def get_news_information(db: Session, news_id: int):
         media_of_news = db.query(Media).join(
             NewsMedia, NewsMedia.media_id == Media.id
         ).filter(NewsMedia.news_id == news.id).all()
-        newsCard["media"] = [media.fileName for media in media_of_news]
+        newsCard["media"] = [media.mainImage for media in media_of_news]
 
         # Get the affiliates
         affiliates_of_news = db.query(NewsCorporations.name, NewsCorporations.logo).join(
@@ -432,18 +395,18 @@ def format_newscard(rows: List[dict]) -> List[dict]:
                 final_output.append(current_news)
 
             current_news = {k: v for k, v in row.items() if
-                            k not in ['category_name', 'entity_name', 'fileName', 'corporation_name', 'logo']}
+                            k not in ['category_name', 'entity_name', 'mainImage', 'corporationName', 'corporationLogo']}
 
             # Initialize sets for categories, entities, and media to avoid duplicates
-            current_news['media'] = {row['fileName']}
+            current_news['media'] = {row['mainImage']}
 
             # Handle affiliate (news corporation) data
-            if row['corporation_name']:
-                current_news['from'] = row['corporation_name']
-                current_news['fromImage'] = row['logo']
+            if row['corporationName']:
+                current_news['from'] = row['corporationName']
+                current_news['fromImage'] = row['corporationLogo']
         else:
-            if row['fileName']:
-                current_news['media'].add(row['fileName'])
+            if row['mainImage']:
+                current_news['media'].add(row['mainImage'])
 
     # Don't forget to add the last news item after the loop
     if current_news:
