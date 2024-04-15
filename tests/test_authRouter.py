@@ -31,7 +31,7 @@ def test_register_existing_email():
 
     # Assert
     assert response.status_code == 400
-    assert response.json() == {"detail": "Email already in use and verified"}
+    assert response.json() == {"detail": "Email already in use by another account"}
 
 def test_register_invalid_password():
     try:
@@ -56,7 +56,7 @@ def test_register_invalid_password():
 def login_test_user():
     # Arrange
     valid_user = {
-        "username": "anonymous_13269354",
+        "username": "anonymous_86859973",
         "password": "s1i1n1a1"
     }
 
@@ -86,8 +86,8 @@ def test_login_valid_user():
 def test_login_inactive_user():
     # Arrange
     valid_user = {
-        "username": "sina2",
-        "password": "sinasina12"
+        "username": "test_urser",
+        "password": "s1i1n1a1"
     }
 
     # Act
