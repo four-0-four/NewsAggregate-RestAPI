@@ -310,7 +310,7 @@ async def initiate_password_reset(email: str, db: db_dependency):
 
 
     # Generate a password reset token (you need to implement this)
-    reset_token = await generate_token(email, db)
+    reset_token = await generate_token(email)
 
     # Send an email with the password reset link (implement send_reset_email)
     reset_link = f"{BASE_URL}/auth/ChangePassword?token={reset_token}"
