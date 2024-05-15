@@ -63,10 +63,11 @@ async def get_news_byID_authorized(
 @router.get("/getByID")
 async def get_news_byID(
         request: Request,
+        user: user_dependency,
         db: db_dependency,
         news_id: int):
     news = await fetch_news_by_id(news_id)
-    if not rows:
+    if not news:
         raise HTTPException(status_code=404, detail="News not found")
 
     #formatted_news = format_newscard(rows)
